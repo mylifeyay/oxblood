@@ -1,0 +1,154 @@
+/* The bonus reveal. Reels dim to near-black, an iris opens on the clip. */
+
+.bonus {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #070406;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.bonus[hidden] {
+  display: none;
+}
+
+.bonus.is-open {
+  opacity: 1;
+}
+
+.bonus__iris {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  clip-path: circle(0% at 50% 50%);
+  /* The delay lets the reels dim to near-black first, so the iris opens on a
+     black field rather than on the cabinet showing through a half-faded veil. */
+  transition: clip-path var(--iris-ms, 420ms) cubic-bezier(0.32, 0.72, 0.28, 1) 150ms;
+}
+
+.bonus.is-open .bonus__iris {
+  clip-path: circle(78% at 50% 50%);
+}
+
+/* Scrims. Amber text over bright footage is unreadable without them, and the
+   footage is whatever came off the camera roll. */
+.bonus__scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.bonus__scrim--top {
+  top: 0;
+  height: 24%;
+  background: linear-gradient(to bottom, rgba(7, 4, 6, 0.8), transparent);
+}
+
+.bonus__scrim--bottom {
+  bottom: 0;
+  height: 44%;
+  background: linear-gradient(to top, rgba(7, 4, 6, 0.94) 0%, rgba(7, 4, 6, 0.62) 38%, transparent 100%);
+}
+
+.bonus__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Full bleed. Swap to `contain` if you would rather never crop a clip. */
+  object-fit: cover;
+  background: #000;
+}
+
+.bonus__tier {
+  position: absolute;
+  top: calc(var(--safe-t) + 16px);
+  left: calc(var(--safe-l) + 18px);
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 8vw, 34px);
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow:
+    0 2px 14px rgba(0, 0, 0, 0.9),
+    0 0 30px currentcolor;
+}
+
+.bonus__tier.is-mini {
+  color: var(--brass);
+}
+
+.bonus__tier.is-minor {
+  color: var(--jade);
+}
+
+.bonus__tier.is-major {
+  color: var(--ember);
+}
+
+.bonus__counter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-b) + 20px);
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-led);
+  font-size: clamp(38px, 13vw, 58px);
+  line-height: 1;
+  color: var(--amber);
+  text-shadow:
+    0 0 6px rgba(255, 180, 67, 0.9),
+    0 0 28px rgba(255, 180, 67, 0.45),
+    0 3px 14px rgba(0, 0, 0, 0.95);
+}
+
+.bonus__card {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-b) + 96px);
+  z-index: 2;
+  max-width: min(86vw, 420px);
+  padding: 10px 16px;
+  border: 1px solid var(--brass);
+  border-radius: var(--radius);
+  background: rgba(26, 14, 18, 0.93);
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--ivory);
+  opacity: 0;
+  transform: translate(-50%, 18px);
+  transition:
+    opacity 260ms ease,
+    transform 260ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.bonus__card.is-in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.bonus__notice {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  max-width: min(84vw, 400px);
+  padding: 16px 18px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: rgba(26, 14, 18, 0.94);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ivory-dim);
+  transform: translate(-50%, -50%);
+}
+
+.bonus__notice[hidden] {
+  display: none;
+}

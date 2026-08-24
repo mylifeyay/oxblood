@@ -1,0 +1,25 @@
+/* All three faces are vendored in src/fonts. Nothing is fetched at runtime. */
+
+@font-face {
+  font-family: 'Anton';
+  src: url('../fonts/anton-latin-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DSEG7 Classic';
+  src: url('../fonts/dseg7-classic-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}

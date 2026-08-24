@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A141A"/>
+      <stop offset="1" stop-color="#1A0E12"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.06" r="0.8">
+      <stop offset="0" stop-color="#FFB443" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FFB443" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8C275"/>
+      <stop offset="0.5" stop-color="#C89B3F"/>
+      <stop offset="1" stop-color="#8A6522"/>
+    </linearGradient>
+    <linearGradient id="well" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.07"/>
+      <stop offset="0.55" stop-color="#000000" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.36"/>
+    </linearGradient>
+    <linearGradient id="lamp" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD79A"/>
+      <stop offset="0.45" stop-color="#FFB443"/>
+      <stop offset="1" stop-color="#D07E1C"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#body)"/>
+  <rect width="512" height="512" fill="url(#halo)"/>
+  <rect x="38.6048" y="38.6048"
+        width="434.7904" height="434.7904" rx="6"
+        fill="#2E1620" stroke="url(#frame)" stroke-width="15.769600000000002"/>
+  
+      <rect x="75.77600000000001" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="#150809"/>
+      <rect x="75.77600000000001" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="url(#well)"/>
+      <rect x="90.914816" y="227.16416000000004" width="77.85676799999999" height="57.67168000000001" rx="2" fill="url(#lamp)"/>
+      <rect x="201.9328" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="#150809"/>
+      <rect x="201.9328" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="url(#well)"/>
+      <rect x="217.07161599999998" y="227.16416000000004" width="77.85676799999999" height="57.67168000000001" rx="2" fill="url(#lamp)"/>
+      <rect x="328.0896" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="#150809"/>
+      <rect x="328.0896" y="111.82080000000002" width="108.13439999999999" height="288.3584" rx="3" fill="url(#well)"/>
+      <rect x="343.22841600000004" y="227.16416000000004" width="77.85676799999999" height="57.67168000000001" rx="2" fill="url(#lamp)"/>
+</svg>

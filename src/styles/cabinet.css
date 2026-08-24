@@ -1,0 +1,310 @@
+.cabinet {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+  gap: 10px;
+  height: 100%;
+  padding: calc(var(--safe-t) + 10px) calc(var(--safe-r) + 12px)
+    calc(var(--safe-b) + 10px) calc(var(--safe-l) + 12px);
+  background:
+    radial-gradient(130% 55% at 50% -12%, rgba(255, 180, 67, 0.11), transparent 62%),
+    linear-gradient(180deg, var(--cabinet-lift) 0%, var(--cabinet) 40%, var(--cabinet-deep) 100%);
+}
+
+/* ---- Marquee ---- */
+
+.marquee {
+  position: relative;
+  padding-bottom: 9px;
+  text-align: center;
+  border-bottom: 1px solid var(--brass-line);
+}
+
+.marquee::after {
+  /* the warm spill a lamp throws down onto the trim */
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  opacity: 0.7;
+}
+
+.marquee__title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 11vw, 50px);
+  line-height: 0.92;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  text-shadow:
+    0 0 20px var(--amber-glow),
+    0 0 44px rgba(255, 180, 67, 0.18),
+    0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.marquee__sub {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* ---- Reel window ---- */
+
+.screen {
+  /* Reels sit high, like a real cabinet, with the belly panel below them.
+     Phases 3 and 7 fill that space with paylines, win overlays and particles. */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+}
+
+.screen__frame {
+  position: relative;
+  /* Symbol cells want to read as tiles, not columns, so the window is capped
+     against its own width rather than swallowing every spare pixel. */
+  width: 100%;
+  max-width: min(100%, 560px);
+  max-height: min(100%, 74vw, 430px);
+  height: 100%;
+  padding: 7px;
+  border: 2px solid var(--brass);
+  border-radius: var(--radius);
+  background: var(--felt);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.7),
+    inset 0 0 46px rgba(0, 0, 0, 0.78),
+    0 8px 26px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.reels {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  height: 100%;
+}
+
+.reel {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Only five tiles exist per reel and they are recycled as it scrolls, so a
+   200-position strip costs five nodes rather than two hundred. */
+.reel__ribbon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--cell-h, 60px);
+}
+
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, rgba(242, 232, 218, 0.05), rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 0 0 1px var(--brass-faint);
+}
+
+.tile__face {
+  position: relative;
+  font-size: calc(var(--cell-h, 60px) * 0.5);
+  line-height: 1;
+  color: var(--ivory);
+}
+
+/* Value reads through weight: lows sit back, mediums and specials come forward. */
+.tile--low .tile__face {
+  opacity: 0.72;
+}
+
+.tile--l1 .tile__face {
+  color: var(--ivory);
+}
+.tile--l2 .tile__face {
+  color: var(--ember);
+}
+.tile--l3 .tile__face {
+  color: var(--amber);
+}
+.tile--l4 .tile__face {
+  color: var(--jade);
+}
+
+.tile--medium::before {
+  background: linear-gradient(180deg, rgba(200, 155, 63, 0.15), rgba(0, 0, 0, 0.3));
+  box-shadow: inset 0 0 0 1px rgba(200, 155, 63, 0.3);
+}
+.tile--m1 .tile__face {
+  color: var(--brass);
+  text-shadow: 0 0 14px rgba(200, 155, 63, 0.5);
+}
+.tile--m2 .tile__face {
+  color: var(--ivory);
+  text-shadow: 0 0 14px rgba(242, 232, 218, 0.35);
+}
+
+.tile--wild::before {
+  background: linear-gradient(180deg, #6c4b19, #33220f);
+  box-shadow: inset 0 0 0 1px var(--brass);
+}
+.tile--wild .tile__face {
+  font-family: var(--font-display);
+  font-size: calc(var(--cell-h, 60px) * 0.46);
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  text-shadow: 0 0 16px rgba(255, 180, 67, 0.75);
+}
+
+.tile--scatter::before {
+  background: radial-gradient(circle at 50% 45%, rgba(226, 72, 60, 0.24), rgba(0, 0, 0, 0.32));
+  box-shadow: inset 0 0 0 1px rgba(226, 72, 60, 0.5);
+}
+.tile--scatter .tile__face {
+  color: var(--ember);
+  text-shadow: 0 0 16px rgba(226, 72, 60, 0.8);
+}
+
+/* Win highlights sit in their own layer, addressed by grid position, so they
+   survive the tile recycling underneath them. */
+.wins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.win-cell {
+  position: absolute;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 180, 67, 0.1);
+  box-shadow:
+    inset 0 0 0 2px var(--amber),
+    0 0 16px rgba(255, 180, 67, 0.4);
+}
+
+.win-cell--scatter {
+  background: rgba(226, 72, 60, 0.12);
+  box-shadow:
+    inset 0 0 0 2px var(--ember),
+    0 0 18px rgba(226, 72, 60, 0.45);
+}
+
+.screen__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(158deg, rgba(242, 232, 218, 0.07) 0%, transparent 40%),
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* ---- Status line ---- */
+
+.status,
+.hint {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.status {
+  color: var(--ivory-dim);
+}
+
+.hint {
+  margin-top: 2px;
+  color: var(--ivory-faint);
+}
+
+.status--warn {
+  color: var(--ember);
+}
+
+.status--ready {
+  color: var(--jade);
+}
+
+/* ---- Readout ---- */
+
+.readout {
+  padding: 9px 12px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.18));
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Bonus tier signage ---- */
+
+.tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tier {
+  padding: 7px 6px 8px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.12));
+  text-align: center;
+}
+
+.tier__name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tier__pay {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--font-led);
+  font-size: 13px;
+  color: var(--ivory-faint);
+}
+
+.tier--mini .tier__name {
+  color: var(--brass);
+  text-shadow: 0 0 14px rgba(200, 155, 63, 0.35);
+}
+
+.tier--minor .tier__name {
+  color: var(--jade);
+  text-shadow: 0 0 14px rgba(63, 168, 140, 0.35);
+}
+
+.tier--major .tier__name {
+  color: var(--ember);
+  text-shadow: 0 0 14px rgba(226, 72, 60, 0.35);
+}

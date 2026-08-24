@@ -1,0 +1,517 @@
+/* ---- Menu ---- */
+
+.menu-list {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 14px 14px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #3a1c28, var(--felt));
+  text-align: left;
+}
+
+.menu-row:active {
+  transform: translateY(1px);
+}
+
+.menu-row__label {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ivory);
+}
+
+.menu-row__hint {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ivory-faint);
+  text-align: right;
+}
+
+.menu-stamp {
+  margin-top: 16px;
+  font-family: var(--font-led);
+  font-size: 11px;
+  text-align: center;
+  color: var(--ivory-faint);
+}
+
+/* ---- Library chrome ---- */
+
+.lib-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.lib-summary__count {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ivory);
+}
+
+/* Not the seven-segment face: it has no real letters, so "352 KB" comes out
+   as gibberish. Digits-only readouts keep the LED look; anything with units
+   does not. */
+.lib-summary__size {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+}
+
+.lib-storage,
+.lib-empty {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ivory-faint);
+}
+
+.lib-empty {
+  padding: 26px 4px;
+  text-align: center;
+}
+
+.lib-warn {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--ember);
+  border-radius: var(--radius);
+  background: rgba(226, 72, 60, 0.12);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ivory);
+}
+
+.lib-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.btn-line {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: var(--felt);
+  color: var(--ivory);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.btn-line:active {
+  transform: translateY(1px);
+}
+
+.btn-line--primary {
+  border-color: var(--brass);
+  background: linear-gradient(180deg, #e0a648, #b8862e);
+  color: var(--cabinet);
+}
+
+.btn-line--danger {
+  border-color: var(--ember);
+  color: var(--ember);
+}
+
+/* ---- Selection actions ---- */
+
+.lib-actions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 11px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.lib-actions__ask {
+  font-size: 12px;
+  color: var(--ivory-dim);
+}
+
+.lib-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lib-actions__row .btn-line {
+  flex: 1 1 auto;
+}
+
+/* ---- Import progress and report ---- */
+
+.lib-progress {
+  height: 6px;
+  margin: 10px 0 14px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.lib-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass), var(--amber));
+  transition: width 160ms linear;
+}
+
+.lib-progress__now {
+  font-size: 12px;
+  color: var(--amber);
+}
+
+.lib-report {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+  padding: 11px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.lib-report__head {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ivory);
+}
+
+.lib-report__line {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ivory-faint);
+}
+
+.lib-report__line.is-imported {
+  color: var(--jade);
+}
+
+.lib-report__line.is-failed {
+  color: var(--ember);
+}
+
+.lib-report .btn-line {
+  justify-self: start;
+}
+
+/* ---- Clip grid ---- */
+
+.clips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.clip {
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: var(--felt);
+}
+
+.clip--selectable {
+  cursor: pointer;
+}
+
+.clip.is-selected {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 18px rgba(255, 180, 67, 0.28);
+}
+
+.clip__thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  overflow: hidden;
+}
+
+/* `contain`, not `cover`: a portrait clip cropped to a landscape box looks
+   like a landscape clip, and orientation is the thing you most need to see. */
+.clip__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.clip__time {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(10, 5, 7, 0.78);
+  font-family: var(--font-led);
+  font-size: 11px;
+  color: var(--amber);
+}
+
+.clip__tick {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 5, 7, 0.7);
+  font-size: 14px;
+  color: var(--amber);
+}
+
+.clip__name {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ivory);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clip__meta {
+  font-size: 10.5px;
+  color: var(--ivory-faint);
+}
+
+.tier-chip {
+  justify-self: start;
+  padding: 4px 9px;
+  border: 1px solid currentcolor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tier-chip--common {
+  color: var(--brass);
+}
+
+.tier-chip--rare {
+  color: var(--jade);
+}
+
+.tier-chip--legendary {
+  color: var(--ember);
+}
+
+/* ---- Tappable meters ---- */
+
+.meter--button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.meter--button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.meter--button:disabled {
+  opacity: 0.45;
+}
+
+.meter--help {
+  align-items: baseline;
+}
+
+.meter__hint {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ivory-dim);
+}
+
+/* ---- How it pays ---- */
+
+.help-heading {
+  margin: 18px 0 8px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.help-note {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ivory-faint);
+}
+
+.help-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ivory-dim);
+}
+
+.pay-glyph {
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.pay-glyph.tile--low {
+  opacity: 0.75;
+}
+
+.pay-glyph.tile--l1 {
+  color: var(--ivory);
+}
+.pay-glyph.tile--l2 {
+  color: var(--ember);
+}
+.pay-glyph.tile--l3 {
+  color: var(--amber);
+}
+.pay-glyph.tile--l4 {
+  color: var(--jade);
+}
+.pay-glyph.tile--m1 {
+  color: var(--brass);
+}
+.pay-glyph.tile--m2 {
+  color: var(--ivory);
+}
+.pay-glyph.tile--wild {
+  font-family: var(--font-display);
+  color: var(--amber);
+}
+.pay-glyph.tile--scatter {
+  color: var(--ember);
+}
+
+.paytable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.paytable th {
+  padding: 0 4px 6px;
+  border-bottom: 1px solid var(--brass-line);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+  text-align: right;
+}
+
+.paytable td {
+  padding: 9px 4px;
+  border-top: 1px solid rgba(200, 155, 63, 0.1);
+}
+
+.paytable tr:first-child td {
+  border-top: none;
+}
+
+.paytable__symbols {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.paytable__pay {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ivory);
+}
+
+.paytable--tiers td {
+  font-size: 12.5px;
+  color: var(--ivory-dim);
+}
+
+.paytable__tier {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.paytable__tier.is-mini {
+  color: var(--brass);
+}
+.paytable__tier.is-minor {
+  color: var(--jade);
+}
+.paytable__tier.is-major {
+  color: var(--ember);
+}
+
+/* ---- Payline diagrams ---- */
+
+.paylines {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.payline-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.payline-item__n {
+  width: 14px;
+  font-size: 10px;
+  text-align: right;
+  color: var(--ivory-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.payline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  flex: 1;
+  padding: 3px;
+  border: 1px solid var(--brass-faint);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.payline__cell {
+  aspect-ratio: 1;
+  border-radius: 1px;
+  background: rgba(242, 232, 218, 0.07);
+}
+
+.payline__cell.is-on {
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(255, 180, 67, 0.6);
+}

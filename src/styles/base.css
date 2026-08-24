@@ -1,0 +1,49 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--cabinet-deep);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* position:fixed + inset:0 pins the layout to the visible viewport and stops
+     Safari rubber-banding the whole machine when you drag on it. */
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  height: 100dvh; /* never 100vh — it is wrong in Safari and hides the bottom */
+  overflow: hidden;
+  overscroll-behavior: none;
+
+  background: var(--cabinet);
+  color: var(--ivory);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.4;
+  font-synthesis-weight: none;
+
+  touch-action: manipulation; /* kills the double-tap zoom delay */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}

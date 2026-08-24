@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1A0E12" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Safari needs the Apple-prefixed pair as well as the manifest. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Oxblood" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%icons/apple-touch-icon-180.png" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%icons/icon-192.png" />
+
+    <title>Oxblood</title>
+  </head>
+
+  <body>
+    <!-- Vertical-only motion blur for the turning reels. Three fixed levels, so
+         the reels switch a class rather than rewriting filter primitives. -->
+    <svg class="filter-defs" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="reel-blur-1" x="-20%" y="-60%" width="140%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="0 1.5" />
+        </filter>
+        <filter id="reel-blur-2" x="-20%" y="-60%" width="140%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="0 3.2" />
+        </filter>
+        <filter id="reel-blur-3" x="-20%" y="-60%" width="140%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="0 5.5" />
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="cabinet" id="cabinet">
+      <header class="marquee">
+        <h1 class="marquee__title">Oxblood</h1>
+        <p class="marquee__sub">Five reels &middot; ten lines</p>
+      </header>
+
+      <section class="tiers" aria-label="Bonus tiers">
+        <div class="tier tier--mini">
+          <span class="tier__name">Mini</span>
+          <span class="tier__pay" id="tier-pay-mini">50</span>
+        </div>
+        <div class="tier tier--minor">
+          <span class="tier__name">Minor</span>
+          <span class="tier__pay" id="tier-pay-minor">200</span>
+        </div>
+        <div class="tier tier--major">
+          <span class="tier__name">Major</span>
+          <span class="tier__pay" id="tier-pay-major">1000</span>
+        </div>
+      </section>
+
+      <main class="screen">
+        <div class="screen__frame" id="screen-frame">
+          <div class="reels" id="reels" aria-hidden="true"></div>
+          <div class="screen__sheen"></div>
+          <div class="wins" id="wins" aria-hidden="true"></div>
+        </div>
+      </main>
+
+      <div class="readout" id="readout" role="status">Starting up</div>
+
+      <section class="meters">
+        <div class="meter">
+          <span class="meter__label">Credit</span>
+          <div class="led led--wide">
+            <span class="led__ghost" aria-hidden="true">888888</span>
+            <span class="led__value" id="credit-meter">0</span>
+          </div>
+        </div>
+        <div class="meter-stack">
+          <button class="meter meter--tiny meter--button" type="button" id="bet" aria-label="Change the bet">
+            <span class="meter__label">Bet</span>
+            <div class="led led--tiny">
+              <span class="led__ghost" aria-hidden="true">888</span>
+              <span class="led__value" id="bet-meter">10</span>
+            </div>
+          </button>
+          <button class="meter meter--tiny meter--button meter--help" type="button" id="help">
+            <span class="meter__label">Help</span>
+            <span class="meter__hint">How it pays</span>
+          </button>
+        </div>
+      </section>
+
+      <footer class="controls">
+        <button class="btn btn--ghost" type="button" id="add-credit" disabled>Add credit</button>
+        <button class="btn btn--spin" type="button" id="spin" disabled>Spin</button>
+        <button class="btn btn--ghost" type="button" id="menu" disabled>Menu</button>
+      </footer>
+
+      <div>
+        <p class="status" id="status">Starting up</p>
+        <p class="hint" id="hint"></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

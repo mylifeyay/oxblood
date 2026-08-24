@@ -1,0 +1,33 @@
+:root {
+  /* Cabinet palette */
+  --cabinet: #1a0e12;
+  --felt: #2e1620;
+  --brass: #c89b3f;
+  --amber: #ffb443;
+  --ember: #e2483c;
+  --jade: #3fa88c;
+  --ivory: #f2e8da;
+
+  /* Derived shades, all mixed from the seven above */
+  --cabinet-deep: #120a0d;
+  --cabinet-lift: #221116;
+  --well: #150809;
+  --brass-line: rgba(200, 155, 63, 0.34);
+  --brass-faint: rgba(200, 155, 63, 0.14);
+  --ivory-dim: rgba(242, 232, 218, 0.58);
+  --ivory-faint: rgba(242, 232, 218, 0.3);
+  --amber-glow: rgba(255, 180, 67, 0.45);
+
+  /* Sharp corners read as machine. */
+  --radius: 4px;
+  --radius-sm: 2px;
+
+  --font-display: 'Anton', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+  --font-ui: 'Archivo', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-led: 'DSEG7 Classic', ui-monospace, 'Courier New', monospace;
+
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+}
