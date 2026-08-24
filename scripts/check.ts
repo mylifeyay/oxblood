@@ -4,10 +4,11 @@
  */
 import { CONFIG } from '../src/game/config.ts'
 import { JADE_CONFIG } from '../src/game/jade.ts'
+import { resolveHold, pickValue } from '../src/game/hold.ts'
 import { EMBER_CONFIG } from '../src/game/ember.ts'
 import { evaluateWaysTotal } from '../src/game/evaluate.ts'
 import { SlotMachine } from '../src/game/machine.ts'
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER } from '../src/game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, SYMBOL_COUNT } from '../src/game/symbols.ts'
 import { evaluateLines, countScatters } from '../src/game/evaluate.ts'
 import { buildStrips } from '../src/game/reels.ts'
 import { reelScatterDistribution } from '../src/game/analysis.ts'
@@ -120,7 +121,7 @@ strips.forEach((strip, reel) => {
   const total = CONFIG.reels[reel]!.weights.reduce((a, b) => a + b, 0)
   check(`reel ${reel + 1} strip length matches its weights`, strip.length, total)
 
-  const tally = new Array<number>(8).fill(0)
+  const tally = new Array<number>(SYMBOL_COUNT).fill(0)
   for (const symbol of strip.symbols) tally[symbol]!++
   check(`reel ${reel + 1} symbol counts match its weights`, tally, [...CONFIG.reels[reel]!.weights])
 })
@@ -339,6 +340,110 @@ for (const [tier, length] of Object.entries(CLIP_SECONDS)) {
 }
 
 check('slice timestamps format', [describeSlice(42), describeSlice(0), describeSlice(605)], ['0:42', '0:00', '10:05'])
+
+console.log('\nhold and spin')
+
+const HOLD = JADE_CONFIG.hold!
+const JADE_CELLS = JADE_CONFIG.reels.length * JADE_CONFIG.rows
+
+/** A Jade screen carrying exactly `coins` lanterns, packed from cell zero. */
+function holdGrid(coins: number): Int8Array {
+  const g = new Int8Array(JADE_CELLS).fill(L1)
+  for (let i = 0; i < coins; i++) g[i] = COIN
+  return g
+}
+
+{
+  // One short of the trigger does nothing at all; the threshold itself fires.
+  const below = resolveHold(JADE_CONFIG, 20, holdGrid(HOLD.triggerCount - 1), mulberry32(1))
+  const at = resolveHold(JADE_CONFIG, 20, holdGrid(HOLD.triggerCount), mulberry32(1))
+  check('one lantern short does not trigger', below, null)
+  check('the trigger count triggers', at !== null, true)
+  check('every trigger lantern locks with a value', at!.filled >= HOLD.triggerCount, true)
+}
+
+{
+  // Values only ever come from the table, and the payout is the board's sum
+  // plus the full-board bonus when the board fills.
+  const bet = 20
+  const allowed = new Set(HOLD.values.map((v) => v.multiple * bet))
+  let stray = 0
+  let mismatched = 0
+  let filledCounts = 0
+  const rng = mulberry32(7)
+  for (let i = 0; i < 20_000; i++) {
+    const r = resolveHold(JADE_CONFIG, bet, holdGrid(HOLD.triggerCount), rng)!
+    const lit = r.cells.filter((c) => c > 0)
+    if (lit.some((c) => !allowed.has(c))) stray++
+    if (lit.length !== r.filled) filledCounts++
+    const sum = lit.reduce((a, b) => a + b, 0) + (r.fullBoard ? HOLD.fullBoardMultiple * bet : 0)
+    if (sum !== r.payout) mismatched++
+  }
+  check('20,000 features use only paytable values', stray, 0)
+  check('20,000 features agree with their own filled count', filledCounts, 0)
+  check('20,000 payouts equal the board plus any full-board bonus', mismatched, 0)
+}
+
+{
+  // A new lantern restores the full respin count; a quiet round spends one.
+  const rng = mulberry32(11)
+  let restored = 0
+  let spent = 0
+  let overrun = 0
+  for (let i = 0; i < 20_000; i++) {
+    const r = resolveHold(JADE_CONFIG, 20, holdGrid(HOLD.triggerCount), rng)!
+    let quiet = 0
+    for (const round of r.rounds) {
+      if (round.landed.length > 0) {
+        if (round.respinsLeft === HOLD.respins) restored++
+        quiet = 0
+      } else {
+        quiet++
+        if (round.respinsLeft === HOLD.respins - quiet) spent++
+      }
+      if (quiet > HOLD.respins) overrun++
+    }
+  }
+  const rounds = restored + spent
+  check('every round either restores or spends a respin', rounds > 0 && overrun === 0, true)
+}
+
+{
+  // A board that is already full has nowhere to respin: it pays out at once.
+  const r = resolveHold(JADE_CONFIG, 20, holdGrid(JADE_CELLS), mulberry32(3))!
+  check('a full trigger screen needs no respins', r.rounds.length, 0)
+  check('a full trigger screen is a full board', r.fullBoard, true)
+  check('a full board adds its bonus', r.payout >= HOLD.fullBoardMultiple * 20, true)
+}
+
+{
+  // Value weighting follows the table. The rarest lantern is the biggest.
+  const rng = mulberry32(5)
+  const runs = 200_000
+  const tally = new Map<number, number>()
+  for (let i = 0; i < runs; i++) {
+    const v = pickValue(HOLD, 1, rng)
+    tally.set(v, (tally.get(v) ?? 0) + 1)
+  }
+  const weightTotal = HOLD.values.reduce((sum, v) => sum + v.weight, 0)
+  let off = 0
+  for (const v of HOLD.values) {
+    const seen = (tally.get(v.multiple) ?? 0) / runs
+    if (Math.abs(seen - v.weight / weightTotal) > 0.005) off++
+  }
+  check(`${runs.toLocaleString('en-GB')} lantern values match their weights`, off, 0)
+  check('every paytable value shows up', tally.size, HOLD.values.length)
+}
+
+{
+  // The feature is Jade's alone, and lanterns never reach a paytable.
+  check('only Jade runs hold and spin', [CONFIG.hold, EMBER_CONFIG.hold], [undefined, undefined])
+  // The lantern carries its own credit value, so it must never also pay a way.
+  const coinRow = JADE_CONFIG.paytable[COIN] ?? []
+  check('lanterns pay nothing on the reels', coinRow.filter((v) => v !== 0).length, 0)
+  const coinBoard = new Int8Array(JADE_CELLS).fill(COIN)
+  check('a screen of nothing but lanterns wins nothing', evaluateWaysTotal(coinBoard, JADE_CONFIG, 20), 0)
+}
 
 console.log(`\n${failures === 0 ? 'all checks passed' : `${failures} CHECK(S) FAILED`}\n`)
 process.exit(failures === 0 ? 0 : 1)

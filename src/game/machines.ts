@@ -56,8 +56,17 @@ export const MACHINES: readonly MachineDef[] = [
     tagline: 'Six reels, four rows, and a pot that keeps climbing',
     theme: 'ember',
     accent: '#FF7A45',
-    unlock: { metric: 'spins', at: 10_000 },
+    unlock: { metric: 'spins', at: 1_500 },
     config: EMBER_CONFIG,
+  },
+  {
+    id: 'ivory-booth',
+    name: 'Ivory Booth',
+    tagline: 'Three by three, one line, nowhere to hide',
+    theme: 'ivory',
+    accent: '#F2E8DA',
+    unlock: { metric: 'wagered', at: 250_000 },
+    config: null,
   },
 ]
 

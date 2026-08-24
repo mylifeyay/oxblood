@@ -1,4 +1,5 @@
 import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, SYMBOL_COUNT } from './symbols.ts'
+import type { HoldConfig } from './hold.ts'
 
 /** Weights are symbol counts on that reel's strip, indexed by symbol id. */
 export type ReelWeights = readonly number[]
@@ -63,6 +64,8 @@ export interface GameConfig {
   readonly stripSeed: number
   /** A pot that grows on every wager. Absent on machines without one. */
   readonly progressive?: Progressive
+  /** Hold and spin. Absent on machines without it. */
+  readonly hold?: HoldConfig
 }
 
 /**

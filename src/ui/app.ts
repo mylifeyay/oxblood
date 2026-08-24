@@ -1,7 +1,8 @@
 import { tierPay } from '../game/config.ts'
 import { SlotMachine, type SpinSnapshot } from '../game/machine.ts'
 import { PAYLINE_ROWS } from '../game/paylines.ts'
-import { SCATTER, WILD } from '../game/symbols.ts'
+import { SCATTER, WILD, COIN, L1 } from '../game/symbols.ts'
+import { resolveHold } from '../game/hold.ts'
 import { Book } from '../game/book.ts'
 import { cloneTotals, type Totals } from '../game/ledger.ts'
 import { ReelView } from './reelview.ts'
@@ -10,6 +11,7 @@ import { CreditMeter } from './meter.ts'
 import { BigWin, Particles, prefersReducedMotion, winTierFor } from './celebrate.ts'
 import { openMenu } from './menu.ts'
 import { BonusStage } from './bonus.ts'
+import { HoldStage } from './holdstage.ts'
 import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
 import { openStats } from './stats.ts'
@@ -58,6 +60,7 @@ export async function startGame(): Promise<void> {
   const view = new ReelView(reelsHost, machine.strips, skin.faces, skin.motion, CONFIG.rows)
   const sound = new Sound(skin.sound)
   const bonus = new BonusStage(Math.random, sound)
+  const holdStage = new HoldStage(sound)
   const particles = new Particles(frame)
   const bigWin = new BigWin(frame)
   const credits = new CreditMeter(creditMeter, (progress) => sound.coinTick(progress))
@@ -215,6 +218,9 @@ export async function startGame(): Promise<void> {
     if (snap.tier && snap.bonusPayout > 0) book.append({ t: 'win', amount: snap.bonusPayout, at, kind: snap.tier.name })
     // The pot counts as a Major win in the books; it only ever lands with one.
     if (snap.jackpotPayout > 0) book.append({ t: 'win', amount: snap.jackpotPayout, at, kind: 'major' })
+    // The lanterns are their own thing, but in the books they are a line win —
+    // they come off the reels, not out of a tier.
+    if (snap.holdPayout > 0) book.append({ t: 'win', amount: snap.holdPayout, at, kind: 'line' })
     if (CONFIG.progressive) void saveSetting(potKey, machine.jackpot)
 
     showWins(snap)
@@ -226,6 +232,16 @@ export async function startGame(): Promise<void> {
     try {
       // A bonus has its own reveal; the line win is celebrated on its own only
       // when there is no clip taking over the screen.
+      // Hold and spin is triggered by the base screen, so it goes before the
+      // clip reveal when a spin somehow sets off both.
+      if (snap.hold) {
+        await holdStage.play(snap.hold, CONFIG.reels.length, CONFIG.hold?.respins ?? 3)
+        // The meter waits if a clip or the pot is still to come — those roll
+        // their own totals in, and there is no sense spoiling them here.
+        const bigger = snap.tier !== null || snap.jackpotPayout > 0
+        if (!bigger) await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
+      }
+
       if (snap.jackpotPayout > 0) {
         // The pot goes first: it is the largest thing that can happen here.
         shake()
@@ -241,7 +257,7 @@ export async function startGame(): Promise<void> {
       } else if (snap.tier) {
         await bonus.reveal(snap.tier.name, snap.bonusPayout)
         await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
-      } else if (snap.totalPayout > 0) {
+      } else if (snap.totalPayout > 0 && !snap.hold) {
         await celebrate(snap.totalPayout)
       } else {
         credits.set(book.balance)
@@ -444,5 +460,12 @@ export async function startGame(): Promise<void> {
     hooks.__stage = bonus
     // A big line win needs twenty times the bet and is far too rare to wait for.
     hooks.__celebrate = (payout: number) => celebrate(payout)
+    // Hold and spin fires once in two hundred and fifty spins.
+    hooks.__hold = (coins = CONFIG.hold?.triggerCount ?? 6) => {
+      const cells = new Int8Array(CONFIG.reels.length * CONFIG.rows).fill(L1)
+      for (let i = 0; i < coins; i++) cells[i] = COIN
+      const result = resolveHold(CONFIG, machine.totalBet, cells, Math.random)
+      return result && holdStage.play(result, CONFIG.reels.length, CONFIG.hold?.respins ?? 3)
+    }
   }
 }

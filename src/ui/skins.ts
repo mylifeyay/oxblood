@@ -1,4 +1,4 @@
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER } from '../game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN } from '../game/symbols.ts'
 import type { SymbolFace } from './symbols.ts'
 
 /** Reel timings. A cabinet's hands feel different from the next one's. */
@@ -48,6 +48,7 @@ oxbloodFaces[M1] = face('★', 'medium', 'star')
 oxbloodFaces[M2] = face('⬢', 'medium', 'hexagon')
 oxbloodFaces[WILD] = face('W', 'wild', 'wild')
 oxbloodFaces[SCATTER] = face('✦', 'scatter', 'scatter')
+oxbloodFaces[COIN] = face('◉', 'coin', 'coin')
 
 const jadeFaces: SymbolFace[] = []
 jadeFaces[L1] = face('●', 'low', 'coin')
@@ -58,6 +59,7 @@ jadeFaces[M1] = face('✿', 'medium', 'blossom')
 jadeFaces[M2] = face('☾', 'medium', 'crescent')
 jadeFaces[WILD] = face('❖', 'wild', 'wild')
 jadeFaces[SCATTER] = face('✺', 'scatter', 'scatter')
+jadeFaces[COIN] = face('◉', 'coin', 'lantern')
 
 const emberFaces: SymbolFace[] = []
 emberFaces[L1] = face('◇', 'low', 'facet')
@@ -68,6 +70,7 @@ emberFaces[M1] = face('✹', 'medium', 'spark')
 emberFaces[M2] = face('✷', 'medium', 'flare')
 emberFaces[WILD] = face('✳', 'wild', 'wild')
 emberFaces[SCATTER] = face('❂', 'scatter', 'scatter')
+emberFaces[COIN] = face('◉', 'coin', 'coin')
 
 export const SKINS: Record<string, Skin> = {
   oxblood: {

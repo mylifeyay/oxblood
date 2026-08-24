@@ -1,11 +1,11 @@
 import { tierPay, type GameConfig } from '../game/config.ts'
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER } from '../game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN } from '../game/symbols.ts'
 import { PAYLINE_ROWS, REELS, ROWS } from '../game/paylines.ts'
 import { FACE_CLASS, type SymbolFace } from './symbols.ts'
 import { openSheet } from './sheet.ts'
 
-const LOWS = [L1, L2, L3, L4]
-const MEDIUMS = [M1, M2]
+/** Reel symbols in paytable order. Grouped below by what they actually pay. */
+const REEL_SYMBOLS = [L1, L2, L3, L4, M1, M2, WILD]
 
 function heading(text: string): HTMLElement {
   const el = document.createElement('h3')
@@ -25,11 +25,14 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
   const bet = config.betPerLine
   const totalBet = bet * config.lineCount
   const ways = config.evaluation === 'ways'
+  const wayCount = config.rows ** config.reels.length
 
   openSheet('How it pays', (body) => {
     const stake = document.createElement('p')
     stake.className = 'help-stake'
-    stake.textContent = ways ? `${totalBet} a spin · 243 ways` : `${totalBet} a spin · ${config.lineCount} lines`
+    stake.textContent = ways
+      ? `${totalBet} a spin · ${wayCount.toLocaleString('en-GB')} ways`
+      : `${totalBet} a spin · ${config.lineCount} lines`
     body.append(stake)
 
     body.append(heading(ways ? 'Ways' : 'Lines'))
@@ -46,7 +49,9 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
     table.append(head)
 
     const addRow = (symbols: number[]): void => {
-      const pays = config.paytable[symbols[0]!]!
+      const first = symbols[0]
+      if (first === undefined) return
+      const pays = config.paytable[first] ?? []
       if (pays.every((p) => p === 0)) return
       const tr = document.createElement('tr')
       const cell = document.createElement('td')
@@ -62,15 +67,27 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
       table.append(tr)
     }
 
-    addRow(LOWS)
-    addRow(MEDIUMS)
-    addRow([WILD])
+    // Symbols share a row only when they share a pay. Cabinets differ on which
+    // ones do, so the grouping is read off the paytable rather than assumed.
+    let group: number[] = []
+    for (const symbol of REEL_SYMBOLS) {
+      const previous = group[0]
+      const same =
+        previous !== undefined &&
+        JSON.stringify(config.paytable[previous]) === JSON.stringify(config.paytable[symbol])
+      if (same) group.push(symbol)
+      else {
+        addRow(group)
+        group = [symbol]
+      }
+    }
+    addRow(group)
     body.append(table)
 
     const wildRow = document.createElement('p')
     wildRow.className = 'help-inline'
     wildRow.append(glyph(WILD))
-    wildRow.append(document.createTextNode(ways ? ' substitutes for all but the scatter.' : ' substitutes for all but the scatter.'))
+    wildRow.append(document.createTextNode(' substitutes for all but the scatter.'))
     body.append(wildRow)
 
     if (ways) {
@@ -86,6 +103,18 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
     scatterRow.append(glyph(SCATTER))
     scatterRow.append(document.createTextNode(' pays anywhere, and plays a clip.'))
     body.append(scatterRow)
+
+    if (config.hold) {
+      const holdRow = document.createElement('p')
+      holdRow.className = 'help-inline'
+      holdRow.append(glyph(COIN))
+      holdRow.append(
+        document.createTextNode(
+          ` carries its own credits. Land ${config.hold.triggerCount} and they hold for the respins.`,
+        ),
+      )
+      body.append(holdRow)
+    }
 
     const tiers = document.createElement('table')
     tiers.className = 'paytable paytable--tiers'

@@ -3,6 +3,7 @@ import { tierPay, type BonusTier, type GameConfig } from './config.ts'
 import { buildStrips, type Strip } from './reels.ts'
 import { countScatters, evaluateDetail, evaluateTotal, type LineWin } from './evaluate.ts'
 import { mulberry32, type Rng } from './random.ts'
+import { countCoins, resolveHold, type HoldResult } from './hold.ts'
 
 const MAX_REROLLS = 20000
 const COUNTER_CAP = 1e9
@@ -19,6 +20,8 @@ export interface SpinSnapshot {
   readonly pityForced: boolean
   readonly cooldownBlocked: boolean
   readonly jackpotPayout: number
+  readonly hold: HoldResult | null
+  readonly holdPayout: number
 }
 
 /**
@@ -48,6 +51,9 @@ export class SlotMachine {
   jackpot = 0
   /** What this spin won from the pot, if anything. */
   jackpotPayout = 0
+  /** The hold and spin feature, when this spin started one. */
+  hold: HoldResult | null = null
+  holdPayout = 0
 
   private readonly rng: Rng
   private betPerLineValue: number
@@ -106,6 +112,11 @@ export class SlotMachine {
     return this.spinsSinceBonus
   }
 
+  /** How many lanterns are on the screen as rolled. */
+  get coinCount(): number {
+    return countCoins(this.grid)
+  }
+
   /** The lowest scatter count that pays anything. */
   private get minBonusScatters(): number {
     return this.config.tiers[0]!.scatters
@@ -161,6 +172,11 @@ export class SlotMachine {
       this.roll()
     }
 
+    // Hold and spin is decided here with the rest of the spin, before a frame
+    // is drawn — the presentation only replays the rounds it is handed.
+    this.hold = this.config.hold ? resolveHold(this.config, this.totalBet, this.grid, this.rng) : null
+    this.holdPayout = this.hold?.payout ?? 0
+
     // The pot takes its cut of the wager whether or not this spin pays.
     const progressive = this.config.progressive
     this.jackpotPayout = 0
@@ -175,7 +191,7 @@ export class SlotMachine {
     this.tier = this.tierFor(this.scatterCount)
     this.bonusPayout = this.tier ? tierPay(this.tier, this.totalBet) : 0
     this.linePayout = evaluateTotal(this.grid, this.config, this.betPerLineValue)
-    this.totalPayout = this.linePayout + this.bonusPayout + this.jackpotPayout
+    this.totalPayout = this.linePayout + this.bonusPayout + this.jackpotPayout + this.holdPayout
 
     if (this.tier?.name === 'mini') this.spinsSinceMini = 0
     else this.spinsSinceMini = Math.min(this.spinsSinceMini + 1, COUNTER_CAP)
@@ -199,6 +215,8 @@ export class SlotMachine {
       pityForced: this.pityForced,
       cooldownBlocked: this.cooldownBlocked,
       jackpotPayout: this.jackpotPayout,
+      hold: this.hold,
+      holdPayout: this.holdPayout,
     }
   }
 }
