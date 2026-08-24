@@ -80,6 +80,14 @@ To build a subpath copy locally:
 VITE_BASE=/your-repo-name/ npm run build
 ```
 
+## Things worth knowing
+
+- **Stats are hidden.** Tap the marquee three times to open them.
+- **Tap the bet meter** to cycle 10 / 20 / 50 / 100 / 250 a spin. Bonus tiers pay
+  a multiple of the bet, so the return is identical at every level.
+- Bonus clip length is per tier: 10 seconds for a Mini, 15 for a Minor, 30 for a
+  Major.
+
 ## Build phases
 
 - [x] **1 — Shell.** Vite scaffold, manifest, service worker, icons, safe

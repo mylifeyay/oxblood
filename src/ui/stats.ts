@@ -136,8 +136,62 @@ function notes(book: Book): HTMLElement {
 }
 
 /** The sheet is modal, so nothing moves behind it — this renders once. */
-export function openStats(book: Book): void {
-  openSheet('Stats', (body) => {
-    body.append(hero('Balance', String(balanceOf(book.lifetime))), table(rowsFor(book.session, book.lifetime)), notes(book))
+export function openStats(book: Book, onReset: () => void): void {
+  const sheet = openSheet('Stats', (body) => {
+    let confirming = false
+
+    const render = (): void => {
+      body.replaceChildren()
+      body.append(hero('Balance', String(balanceOf(book.lifetime))), table(rowsFor(book.session, book.lifetime)), notes(book))
+
+      const box = document.createElement('div')
+      box.className = 'reset-box'
+
+      if (!confirming) {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'btn-line btn-line--danger'
+        button.textContent = 'Reset statistics'
+        button.addEventListener('click', () => {
+          confirming = true
+          render()
+        })
+        box.append(button)
+      } else {
+        const ask = document.createElement('p')
+        ask.className = 'lib-actions__ask'
+        ask.textContent =
+          'Clear every spin, win and bonus from the record? Your balance and your clips are kept. This cannot be undone.'
+        const row = document.createElement('div')
+        row.className = 'lib-actions__row'
+
+        const keep = document.createElement('button')
+        keep.type = 'button'
+        keep.className = 'btn-line'
+        keep.textContent = 'Keep them'
+        keep.addEventListener('click', () => {
+          confirming = false
+          render()
+        })
+
+        const wipe = document.createElement('button')
+        wipe.type = 'button'
+        wipe.className = 'btn-line btn-line--danger'
+        wipe.textContent = 'Reset'
+        wipe.addEventListener('click', async () => {
+          wipe.disabled = true
+          await book.reset()
+          onReset()
+          sheet.close()
+        })
+
+        row.append(keep, wipe)
+        box.append(ask, row)
+      }
+
+      body.append(box)
+    }
+
+    render()
   })
 }

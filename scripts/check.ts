@@ -178,28 +178,32 @@ check('an empty pool picks nothing', pickVideo([], Math.random), null)
   console.log(`  ${ok ? 'pass' : 'FAIL'}  inverse weighting: fresh picked ${ratio.toFixed(2)}x as often as nine-times-played (want ~10)`)
 }
 
-check('a clip shorter than the window plays whole', pickSlice(6, Math.random), { offset: 0, length: 6 })
-check('a clip exactly the window long plays whole', pickSlice(10, Math.random), { offset: 0, length: 10 })
+check('a clip shorter than the window plays whole', pickSlice(6, Math.random, 10), { offset: 0, length: 6 })
+check('a clip exactly the window long plays whole', pickSlice(10, Math.random, 10), { offset: 0, length: 10 })
+check('each tier asks for its own length', [CLIP_SECONDS.mini, CLIP_SECONDS.minor, CLIP_SECONDS.major], [10, 15, 30])
+check('a 20s clip cannot fill a 30s Major window, so it plays whole', pickSlice(20, Math.random, CLIP_SECONDS.major), { offset: 0, length: 20 })
 
-{
+for (const [tier, length] of Object.entries(CLIP_SECONDS)) {
   const rng = mulberry32(3)
   let outside = 0
-  for (let i = 0; i < 200_000; i++) {
-    const duration = 12 + rng() * 3600
-    const slice = pickSlice(duration, rng)
-    const trimmable = 0.95 * duration - CLIP_SECONDS > 0.05 * duration
-    if (slice.length !== CLIP_SECONDS) outside++
+  const runs = 120_000
+  for (let i = 0; i < runs; i++) {
+    // Only clips long enough to hold the window; shorter ones play whole.
+    const duration = length + 2 + rng() * 3600
+    const slice = pickSlice(duration, rng, length)
+    const trimmable = 0.95 * duration - length > 0.05 * duration
+    if (slice.length !== length) outside++
     else if (slice.offset < 0 || slice.offset + slice.length > duration + 1e-9) outside++
-    else if (trimmable && (slice.offset < 0.05 * duration - 1e-9 || slice.offset + CLIP_SECONDS > 0.95 * duration + 1e-9)) outside++
+    else if (trimmable && (slice.offset < 0.05 * duration - 1e-9 || slice.offset + length > 0.95 * duration + 1e-9)) outside++
   }
-  check('200,000 slices all land inside the trimmed window', outside, 0)
+  check(`${runs.toLocaleString('en-GB')} ${tier} slices all land inside the trimmed window`, outside, 0)
 }
 
 {
   // A fresh offset every single time — nothing is cached per clip.
   const rng = mulberry32(99)
   const seen = new Set<number>()
-  for (let i = 0; i < 500; i++) seen.add(pickSlice(3600, rng).offset)
+  for (let i = 0; i < 500; i++) seen.add(pickSlice(3600, rng, CLIP_SECONDS.mini).offset)
   check('500 rolls on one clip give 500 distinct offsets', seen.size, 500)
 }
 

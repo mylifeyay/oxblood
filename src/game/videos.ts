@@ -26,6 +26,10 @@ export interface VideoMeta {
   fingerprint: string
   width: number
   height: number
+  /** Marked with a heart in the unlocked gallery. */
+  liked?: boolean
+  /** When a bonus last played this clip. Absent means it never has. */
+  lastWonAt?: number
 }
 
 export async function listVideos(): Promise<VideoMeta[]> {
@@ -99,13 +103,41 @@ export async function cycleTier(id: string): Promise<Tier | undefined> {
   return next
 }
 
+/** Records that a bonus played this clip. Read and written in one transaction. */
 export async function bumpTimesPlayed(id: string): Promise<void> {
   const db = await database()
   if (!db) return
   const tx = db.transaction('videos', 'readwrite')
   const meta = await tx.store.get(id)
-  if (meta) void tx.store.put({ ...meta, timesPlayed: meta.timesPlayed + 1 })
+  if (meta) void tx.store.put({ ...meta, timesPlayed: meta.timesPlayed + 1, lastWonAt: Date.now() })
   await tx.done
+}
+
+/** Returns the new state, read inside the write so quick taps cannot race. */
+export async function toggleLiked(id: string): Promise<boolean> {
+  const db = await database()
+  if (!db) return false
+  const tx = db.transaction('videos', 'readwrite')
+  const meta = await tx.store.get(id)
+  if (!meta) {
+    await tx.done
+    return false
+  }
+  const liked = !meta.liked
+  void tx.store.put({ ...meta, liked })
+  await tx.done
+  return liked
+}
+
+/**
+ * Clips a bonus has actually played, newest first, hearted ones first.
+ * Winning the same clip twice does not list it twice — the count says so.
+ */
+export async function listUnlocked(): Promise<VideoMeta[]> {
+  const all = await listVideos()
+  return all
+    .filter((v) => v.timesPlayed > 0)
+    .sort((a, b) => Number(b.liked ?? false) - Number(a.liked ?? false) || (b.lastWonAt ?? 0) - (a.lastWonAt ?? 0))
 }
 
 export const libraryBytes = (videos: readonly VideoMeta[]): number => videos.reduce((total, v) => total + v.bytes, 0)

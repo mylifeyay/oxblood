@@ -3,8 +3,10 @@ import type { Sound } from '../audio/sound.ts'
 import { saveSetting } from '../game/settings.ts'
 import { formatBytes, libraryBytes, listVideos } from '../game/videos.ts'
 import { openSheet } from './sheet.ts'
-import { openStats } from './stats.ts'
 import { openLibrary } from './library.ts'
+import { openUnlocked } from './unlocked.ts'
+import { openMachines } from './machines.ts'
+import { listUnlocked } from '../game/videos.ts'
 
 function row(label: string, hint: string, onClick: () => void): HTMLButtonElement {
   const button = document.createElement('button')
@@ -21,16 +23,29 @@ function row(label: string, hint: string, onClick: () => void): HTMLButtonElemen
   return button
 }
 
-export function openMenu(book: Book, sound: Sound): void {
+export function openMenu(book: Book, sound: Sound, activeMachineId: string): void {
   openSheet('Menu', (body) => {
     const list = document.createElement('div')
     list.className = 'menu-list'
 
-    const spins = book.lifetime.spins
-    list.append(row('Stats', spins === 1 ? '1 spin so far' : `${spins.toLocaleString('en-GB')} spins so far`, () => openStats(book)))
+    const unlocked = row('Unlocked clips', 'Counting wins', () => openUnlocked())
+    list.append(unlocked)
+    void listUnlocked().then((clips) => {
+      const hint = unlocked.querySelector('.menu-row__hint')
+      if (!hint) return
+      const hearted = clips.filter((c) => c.liked).length
+      hint.textContent =
+        clips.length === 0
+          ? 'Win a bonus to unlock one'
+          : `${clips.length === 1 ? '1 clip' : `${clips.length} clips`}${hearted ? ` · ${hearted} hearted` : ''}`
+    })
 
     const library = row('Video library', 'Counting clips', () => openLibrary())
     list.append(library)
+
+    list.append(
+      row('Machines', `${book.lifetime.spins.toLocaleString('en-GB')} spins played`, () => openMachines(book, activeMachineId)),
+    )
 
     const soundRow = row('Sound', '', () => {
       sound.unlock()

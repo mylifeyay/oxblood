@@ -153,6 +153,33 @@ export class Book {
     await tx.done
   }
 
+  /**
+   * Wipes every recorded spin and starts the history again, carrying the
+   * current balance across as a single opening credit. Balance is a fold over
+   * the ledger, so it has to be re-stated or resetting would also empty the
+   * meter.
+   */
+  async reset(): Promise<void> {
+    const carried = this.balance
+
+    this.pending = []
+    this.entries = []
+    this.keys = []
+    this.folded = emptyTotals()
+    this.life = emptyTotals()
+    this.sess = emptyTotals()
+
+    if (this.db) {
+      const tx = this.db.transaction(['ledger', 'meta'], 'readwrite')
+      void tx.objectStore('ledger').clear()
+      void tx.objectStore('meta').delete('folded')
+      await tx.done
+    }
+
+    if (carried > 0) this.append({ t: 'credit', amount: carried, at: Date.now() })
+    await this.flush()
+  }
+
   /** Entry count actually held, for the stats screen to be honest about pruning. */
   get retained(): number {
     return this.entries.length + this.pending.length

@@ -1,7 +1,7 @@
 import primerUrl from '../assets/primer.mp4'
 import type { TierKind } from '../game/ledger.ts'
 import { bumpTimesPlayed, getVideoBlob, listVideos, type VideoMeta } from '../game/videos.ts'
-import { describeSlice, pickSlice, pickVideo, poolFor, type Slice } from '../game/bonus.ts'
+import { CLIP_SECONDS, describeSlice, pickSlice, pickVideo, poolFor, type Slice } from '../game/bonus.ts'
 import type { Sound } from '../audio/sound.ts'
 
 const TIER_NAME: Record<TierKind, string> = { mini: 'Mini', minor: 'Minor', major: 'Major' }
@@ -9,11 +9,19 @@ const TIER_NAME: Record<TierKind, string> = { mini: 'Mini', minor: 'Minor', majo
 const IRIS_MS: Record<TierKind, number> = { mini: 420, minor: 560, major: 900 }
 const HELD_BEAT_MS: Record<TierKind, number> = { mini: 0, minor: 120, major: 620 }
 /** Major's counter is still climbing when the clip ends. */
-const COUNT_MS: Record<TierKind, number> = { mini: 2200, minor: 4200, major: 14000 }
+const COUNT_MS: Record<TierKind, number> = { mini: 2200, minor: 5200, major: 18000 }
 const CARD_MS = 2600
 const LOAD_TIMEOUT_MS = 15_000
-/** How long the picture may sit still before the clip is considered over. */
-const STALL_MS = 2500
+/** How often the watchdog checks that the picture is still moving. */
+const STALL_CHECK_MS = 2000
+/**
+ * Consecutive checks with no progress before the clip is given up on. Reading a
+ * large blob out of IndexedDB and seeking deep into it can genuinely stall for
+ * a few seconds on a phone, so the first strike nudges rather than quits.
+ */
+const STALL_STRIKES = 4
+/** How long to wait for a decoded frame after a seek before revealing anyway. */
+const FRAME_WAIT_MS = 900
 
 interface Ready {
   meta: VideoMeta
@@ -171,9 +179,12 @@ export class BonusStage {
       await this.once('loadedmetadata', LOAD_TIMEOUT_MS)
       const duration = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : pick.duration
       // A fresh offset every single time. Never cached per clip.
-      const slice = pickSlice(duration, this.random)
+      const slice = pickSlice(duration, this.random, CLIP_SECONDS[kind])
       el.currentTime = slice.offset
       await this.once('seeked', LOAD_TIMEOUT_MS)
+      // `seeked` only means the seek finished, not that a frame is ready to
+      // show. Revealing here is what produces the occasional black screen.
+      await this.awaitFrame()
       this.ready = { meta: pick, url, slice }
     } catch {
       URL.revokeObjectURL(url)
@@ -183,6 +194,34 @@ export class BonusStage {
 
   private wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Waits until there is genuinely a decoded frame to show.
+   *
+   * readyState reaching HAVE_CURRENT_DATA means the frame at the current time
+   * is available; requestVideoFrameCallback confirms one has actually been
+   * presented. Both are capped, so a device that never reports either still
+   * gets its reveal, just with the old risk of a black first frame.
+   */
+  private async awaitFrame(): Promise<void> {
+    const el = this.video
+
+    if (el.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      await Promise.race([
+        new Promise<void>((resolve) => el.addEventListener('loadeddata', () => resolve(), { once: true })),
+        this.wait(FRAME_WAIT_MS),
+      ])
+    }
+
+    const request = (el as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number })
+      .requestVideoFrameCallback
+    if (typeof request === 'function') {
+      await Promise.race([
+        new Promise<void>((resolve) => request.call(el, () => resolve())),
+        this.wait(FRAME_WAIT_MS),
+      ])
+    }
   }
 
   private countUp(target: number, ms: number): Promise<void> {
@@ -229,19 +268,25 @@ export class BonusStage {
         try {
           await el.play()
         } catch {
+          // Nothing will play. Fall through so the card and the count still
+          // happen rather than holding a black screen.
           return
         }
       }
 
       await new Promise<void>((resolve) => {
         let finished = false
+        let ending = false
+
         const finish = (): void => {
           if (finished) return
           finished = true
+          ending = true
           clearInterval(watchdog)
           clearTimeout(hardCap)
           el.removeEventListener('timeupdate', onTime)
           el.removeEventListener('ended', finish)
+          el.removeEventListener('pause', onPause)
           el.pause()
           resolve()
         }
@@ -250,27 +295,50 @@ export class BonusStage {
         const onTime = (): void => {
           if (el.currentTime >= end) finish()
         }
+
+        /**
+         * A pause we did not ask for.
+         *
+         * Browsers stop playback of their own accord — a silent video in a
+         * backgrounded tab, memory pressure, a reclaimed decoder. Left alone
+         * the picture simply freezes and the reveal sits there, which is the
+         * freeze this was reported as. Start it again.
+         */
+        const onPause = (): void => {
+          if (ending || el.currentTime >= end) return
+          void el.play().catch(() => {})
+        }
+
         el.addEventListener('timeupdate', onTime)
         el.addEventListener('ended', finish)
+        el.addEventListener('pause', onPause)
 
         // The backstop watches for progress rather than counting wall clock.
         // A plain timer cuts the clip short whenever playback runs slower than
-        // real time — backgrounded, throttled, or just slow to decode — and
-        // drifts long when iOS suspends it. This only fires when the picture
-        // has genuinely stopped moving.
+        // real time, and drifts long when iOS suspends it.
+        //
+        // A stall is not automatically fatal: seeking deep into a large blob
+        // can genuinely take a few seconds. The early strikes try to get it
+        // moving again; only sustained silence ends the clip.
         let lastSeen = el.currentTime
+        let strikes = 0
         const watchdog = setInterval(() => {
-          if (el.paused) return
           if (el.currentTime > lastSeen + 0.05) {
             lastSeen = el.currentTime
+            strikes = 0
             return
           }
-          finish()
-        }, STALL_MS)
+          strikes++
+          if (strikes >= STALL_STRIKES) {
+            finish()
+            return
+          }
+          void el.play().catch(() => {})
+        }, STALL_CHECK_MS)
 
         // And a ceiling, so a clip that somehow never stalls and never reaches
         // the end cannot hold the screen forever.
-        const hardCap = setTimeout(finish, ready.slice.length * 3000 + 6000)
+        const hardCap = setTimeout(finish, ready.slice.length * 3000 + 8000)
       })
     })()
   }

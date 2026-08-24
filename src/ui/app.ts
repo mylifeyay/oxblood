@@ -11,6 +11,8 @@ import { openMenu } from './menu.ts'
 import { BonusStage } from './bonus.ts'
 import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
+import { openStats } from './stats.ts'
+import { DEFAULT_MACHINE, machineById } from '../game/machines.ts'
 import { saveSetting, loadSetting as loadPref } from '../game/settings.ts'
 
 function need<T extends HTMLElement>(id: string): T {
@@ -32,6 +34,7 @@ export async function startGame(): Promise<void> {
   const betButton = need<HTMLButtonElement>('bet')
   const helpButton = need<HTMLButtonElement>('help')
   const tierPayEls = new Map(CONFIG.tiers.map((tier) => [tier.name, need(`tier-pay-${tier.name}`)]))
+  const title = need('marquee-title')
 
   const cabinet = need('cabinet')
   const machine = new SlotMachine(CONFIG)
@@ -53,6 +56,10 @@ export async function startGame(): Promise<void> {
   // The bet the player last chose, if it is still one we offer.
   const savedBet = await loadPref('betPerLine', CONFIG.betPerLine)
   machine.betPerLine = CONFIG.betLevels.includes(savedBet) ? savedBet : CONFIG.betPerLine
+
+  // Only one cabinet is built, but the active one is already a stored choice
+  // so a second machine is a data change rather than a rewrite.
+  const activeMachine = machineById(await loadPref('machine', DEFAULT_MACHINE.id))
 
   // The clack as each reel lands, and the riser while one hangs on.
   const risers = new Map<number, { stop(): void }>()
@@ -324,7 +331,28 @@ export async function startGame(): Promise<void> {
 
   spinButton.addEventListener('click', spin)
   addButton.addEventListener('click', addCredit)
-  menuButton.addEventListener('click', () => openMenu(book, sound))
+  menuButton.addEventListener('click', () => openMenu(book, sound, activeMachine.id))
+
+  // Stats are not on the menu. Three taps on the marquee opens them.
+  let titleTaps = 0
+  let tapTimer: number | undefined
+  title.addEventListener('click', () => {
+    titleTaps++
+    window.clearTimeout(tapTimer)
+    tapTimer = window.setTimeout(() => {
+      titleTaps = 0
+    }, 900)
+    if (titleTaps < 3) return
+    titleTaps = 0
+    window.clearTimeout(tapTimer)
+    sound.unlock()
+    sound.reelStop(1)
+    openStats(book, () => {
+      renderMeters()
+      refreshButtons()
+      setReadout('Statistics reset')
+    })
+  })
   betButton.addEventListener('click', cycleBet)
   helpButton.addEventListener('click', () => openHelp(machine.betPerLine))
 

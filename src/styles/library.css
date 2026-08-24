@@ -515,3 +515,168 @@
   background: var(--amber);
   box-shadow: 0 0 6px rgba(255, 180, 67, 0.6);
 }
+
+/* ---- Unlocked clips ---- */
+
+.clip--unlocked {
+  position: relative;
+}
+
+.clip__thumb--button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.clip__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--ivory);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  opacity: 0.82;
+}
+
+.heart {
+  justify-self: start;
+  min-width: 40px;
+  min-height: 32px;
+  padding: 3px 10px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ivory-faint);
+}
+
+.heart.is-on {
+  border-color: var(--ember);
+  color: var(--ember);
+  text-shadow: 0 0 12px rgba(226, 72, 60, 0.65);
+}
+
+.heart:active {
+  transform: translateY(1px);
+}
+
+/* ---- Full clip viewer ---- */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: rgba(7, 4, 6, 0.96);
+  padding: calc(var(--safe-t) + 12px) 12px calc(var(--safe-b) + 12px);
+  gap: 12px;
+}
+
+.viewer__video {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  background: #000;
+  border-radius: var(--radius);
+}
+
+.viewer__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.viewer__title {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ivory-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Reset statistics ---- */
+
+.reset-box {
+  display: grid;
+  gap: 9px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--brass-line);
+  justify-items: start;
+}
+
+/* ---- Machines ---- */
+
+.machine-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.machine {
+  display: grid;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--brass-line);
+  border-left: 3px solid var(--accent, var(--brass));
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(58, 28, 40, 0.7), var(--felt));
+}
+
+.machine.is-active {
+  box-shadow: 0 0 0 1px var(--accent, var(--brass)), 0 0 22px rgba(255, 180, 67, 0.16);
+}
+
+.machine.is-locked {
+  opacity: 0.62;
+}
+
+.machine__name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, var(--ivory));
+}
+
+.machine__tagline {
+  font-size: 12px;
+  color: var(--ivory-dim);
+}
+
+.machine__status {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+
+.machine__bar {
+  height: 4px;
+  margin-top: 7px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.machine__fill {
+  height: 100%;
+  background: var(--accent, var(--brass));
+  opacity: 0.75;
+}
+
+/* The marquee is a control now, quietly. */
+.marquee__title {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
