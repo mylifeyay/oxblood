@@ -28,6 +28,15 @@ export interface VideoMeta {
   height: number
   /** Marked with a heart in the unlocked gallery. */
   liked?: boolean
+  /**
+   * Which fixed-length segments a bonus has actually shown. Winning one slice
+   * reveals only the part of the video it played, not the whole file.
+   *
+   * Absent means the clip predates segment tracking and stays fully unlocked —
+   * taking something back that was already given would be worse than the
+   * inconsistency.
+   */
+  unlockedSegments?: number[]
   /** When a bonus last played this clip. Absent means it never has. */
   lastWonAt?: number
 }
@@ -103,13 +112,25 @@ export async function cycleTier(id: string): Promise<Tier | undefined> {
   return next
 }
 
-/** Records that a bonus played this clip. Read and written in one transaction. */
-export async function bumpTimesPlayed(id: string): Promise<void> {
+/**
+ * Records that a bonus played this slice, unlocking only the segments it
+ * actually showed. Read and written in one transaction.
+ */
+export async function recordWin(id: string, offset: number, length: number): Promise<void> {
   const db = await database()
   if (!db) return
   const tx = db.transaction('videos', 'readwrite')
   const meta = await tx.store.get(id)
-  if (meta) void tx.store.put({ ...meta, timesPlayed: meta.timesPlayed + 1, lastWonAt: Date.now() })
+  if (meta) {
+    const unlocked = new Set(unlockedOf(meta))
+    for (const segment of coveredSegments(offset, length, meta.duration)) unlocked.add(segment)
+    void tx.store.put({
+      ...meta,
+      timesPlayed: meta.timesPlayed + 1,
+      lastWonAt: Date.now(),
+      unlockedSegments: [...unlocked].sort((a, b) => a - b),
+    })
+  }
   await tx.done
 }
 
@@ -138,6 +159,48 @@ export async function listUnlocked(): Promise<VideoMeta[]> {
   return all
     .filter((v) => v.timesPlayed > 0)
     .sort((a, b) => Number(b.liked ?? false) - Number(a.liked ?? false) || (b.lastWonAt ?? 0) - (a.lastWonAt ?? 0))
+}
+
+/** The grain at which a video unlocks. A Mini reveals one or two of these. */
+export const SEGMENT_SECONDS = 10
+
+export const segmentCount = (duration: number): number => Math.max(1, Math.ceil(duration / SEGMENT_SECONDS))
+
+/** The segments a slice starting at `offset` and running `length` touches. */
+export function coveredSegments(offset: number, length: number, duration: number): number[] {
+  const total = segmentCount(duration)
+  const first = Math.min(total - 1, Math.max(0, Math.floor(offset / SEGMENT_SECONDS)))
+  const last = Math.min(total - 1, Math.max(first, Math.floor((offset + length - 0.001) / SEGMENT_SECONDS)))
+  const out: number[] = []
+  for (let i = first; i <= last; i++) out.push(i)
+  return out
+}
+
+/** Unlocked segments, treating pre-segment clips as fully revealed. */
+export function unlockedOf(meta: VideoMeta): number[] {
+  if (meta.unlockedSegments) return meta.unlockedSegments
+  if (meta.timesPlayed > 0) return Array.from({ length: segmentCount(meta.duration) }, (_, i) => i)
+  return []
+}
+
+export const isFullyUnlocked = (meta: VideoMeta): boolean =>
+  unlockedOf(meta).length >= segmentCount(meta.duration)
+
+/** Contiguous runs of unlocked video, in seconds, for playback. */
+export function unlockedRuns(meta: VideoMeta): { start: number; end: number }[] {
+  const sorted = [...unlockedOf(meta)].sort((a, b) => a - b)
+  const runs: { start: number; end: number }[] = []
+  let i = 0
+  while (i < sorted.length) {
+    let j = i
+    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j]! + 1) j++
+    runs.push({
+      start: sorted[i]! * SEGMENT_SECONDS,
+      end: Math.min(meta.duration, (sorted[j]! + 1) * SEGMENT_SECONDS),
+    })
+    i = j + 1
+  }
+  return runs
 }
 
 export const libraryBytes = (videos: readonly VideoMeta[]): number => videos.reduce((total, v) => total + v.bytes, 0)

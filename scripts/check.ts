@@ -11,7 +11,7 @@ import { reelScatterDistribution } from '../src/game/analysis.ts'
 import { ROWS, REELS } from '../src/game/paylines.ts'
 import { poolFor, pickVideo, pickSlice, describeSlice, CLIP_SECONDS } from '../src/game/bonus.ts'
 import { mulberry32 } from '../src/game/random.ts'
-import type { Tier, VideoMeta } from '../src/game/videos.ts'
+import { coveredSegments, isFullyUnlocked, segmentCount, unlockedRuns, type Tier, type VideoMeta } from '../src/game/videos.ts'
 
 let failures = 0
 
@@ -121,6 +121,34 @@ strips.forEach((strip, reel) => {
   for (const symbol of strip.symbols) tally[symbol]!++
   check(`reel ${reel + 1} symbol counts match its weights`, tally, [...CONFIG.reels[reel]!.weights])
 })
+
+console.log('\nSegment unlocking\n')
+
+{
+  const meta = (duration: number, segments: number[]): VideoMeta =>
+    ({ id: 'x', name: 'x', tier: 'common', timesPlayed: 1, duration, importedAt: 0, bytes: 0, fingerprint: 'x',
+       width: 1, height: 1, unlockedSegments: segments, poster: null as unknown as Blob })
+
+  check('a 90s video is 9 segments', segmentCount(90), 9)
+  check('a 95s video is 10 segments', segmentCount(95), 10)
+  check('a Mini at 0 reveals one segment', coveredSegments(0, 10, 90), [0])
+  check('a Mini straddling a boundary reveals two', coveredSegments(12.5, 10, 90), [1, 2])
+  check('a Minor reveals the two it crosses', coveredSegments(20, 15, 90), [2, 3])
+  check('a Major reveals four', coveredSegments(5, 30, 90), [0, 1, 2, 3])
+  check('a slice cannot reveal past the end', coveredSegments(85, 30, 90), [8])
+  check('adjacent segments merge into one run', unlockedRuns(meta(90, [0, 1, 2, 5, 6])), [
+    { start: 0, end: 30 },
+    { start: 50, end: 70 },
+  ])
+  check('the last run stops at the duration', unlockedRuns(meta(25, [2])), [{ start: 20, end: 25 }])
+  check('a video is complete only when every segment is in', isFullyUnlocked(meta(30, [0, 1])), false)
+  check('all segments means complete', isFullyUnlocked(meta(30, [0, 1, 2])), true)
+
+  // Clips won before segments existed keep the access they already had.
+  const legacy: VideoMeta = { ...meta(90, []), timesPlayed: 3 }
+  delete (legacy as { unlockedSegments?: number[] }).unlockedSegments
+  check('a clip won before segment tracking stays fully unlocked', isFullyUnlocked(legacy), true)
+}
 
 console.log('\nBet levels\n')
 

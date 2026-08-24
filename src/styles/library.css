@@ -564,41 +564,142 @@
   transform: translateY(1px);
 }
 
-/* ---- Full clip viewer ---- */
+/* ---- Clip viewer ---- */
 
 .viewer {
   position: fixed;
   inset: 0;
   z-index: 50;
   display: grid;
-  grid-template-rows: 1fr auto;
-  background: rgba(7, 4, 6, 0.96);
-  padding: calc(var(--safe-t) + 12px) 12px calc(var(--safe-b) + 12px);
-  gap: 12px;
+  place-items: center;
+  background: rgba(7, 4, 6, 0.97);
+  padding: calc(var(--safe-t) + 8px) 8px calc(var(--safe-b) + 8px);
+}
+
+.viewer__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .viewer__video {
   width: 100%;
   height: 100%;
-  min-height: 0;
   object-fit: contain;
   background: #000;
   border-radius: var(--radius);
 }
 
-.viewer__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+/* Sits over the picture rather than under it. A control in a bar below the
+   video can end up off-screen on a short viewport, which leaves no way back. */
+.viewer__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--brass);
+  border-radius: var(--radius);
+  background: rgba(26, 14, 18, 0.92);
+  color: var(--ivory);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.viewer__close:active {
+  transform: translateY(1px);
 }
 
 .viewer__title {
+  position: absolute;
+  top: 18px;
+  left: 12px;
+  right: 120px;
+  z-index: 2;
   overflow: hidden;
   font-size: 13px;
-  color: var(--ivory-dim);
+  color: var(--ivory);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.viewer__part,
+.viewer__hint {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+}
+
+.viewer__part {
+  bottom: 34px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.viewer__hint {
+  bottom: 12px;
+  font-size: 11px;
+  color: var(--ivory-faint);
+}
+
+/* ---- Unlock progress ---- */
+
+.segments {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  margin-top: 2px;
+}
+
+.segments__cell {
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(242, 232, 218, 0.1);
+}
+
+.segments__cell.is-on {
+  background: var(--amber);
+  box-shadow: 0 0 5px rgba(255, 180, 67, 0.5);
+}
+
+.segments--dense {
+  display: block;
+  border-radius: 3px;
+  background: rgba(242, 232, 218, 0.1);
+  overflow: hidden;
+}
+
+.segments__fill {
+  display: block;
+  height: 100%;
+  background: var(--amber);
+}
+
+.clip__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.clip__when {
+  font-size: 10px;
+  color: var(--ivory-faint);
+}
+
+.clip--unlocked.is-complete {
+  border-color: var(--brass);
 }
 
 /* ---- Reset statistics ---- */

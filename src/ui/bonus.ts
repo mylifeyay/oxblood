@@ -1,6 +1,6 @@
 import primerUrl from '../assets/primer.mp4'
 import type { TierKind } from '../game/ledger.ts'
-import { bumpTimesPlayed, getVideoBlob, listVideos, type VideoMeta } from '../game/videos.ts'
+import { getVideoBlob, listVideos, recordWin, type VideoMeta } from '../game/videos.ts'
 import { CLIP_SECONDS, describeSlice, pickSlice, pickVideo, poolFor, type Slice } from '../game/bonus.ts'
 import type { Sound } from '../audio/sound.ts'
 
@@ -401,7 +401,7 @@ export class BonusStage {
       const at = describeSlice(ready.slice.offset)
       this.card.textContent = `${at} of ${ready.meta.name}`
       this.card.classList.add('is-in')
-      void bumpTimesPlayed(ready.meta.id)
+      void recordWin(ready.meta.id, ready.slice.offset, ready.slice.length)
       await race(this.wait(CARD_MS))
     }
 

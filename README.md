@@ -87,6 +87,10 @@ VITE_BASE=/your-repo-name/ npm run build
   a multiple of the bet, so the return is identical at every level.
 - Bonus clip length is per tier: 10 seconds for a Mini, 15 for a Minor, 30 for a
   Major.
+- **A win unlocks only what it showed.** Videos are divided into 10-second
+  segments; a bonus reveals the ones its slice crossed. The unlocked gallery
+  plays back the parts you have won and skips the rest, so the whole video only
+  opens up once you have won across all of it.
 
 ## Build phases
 
