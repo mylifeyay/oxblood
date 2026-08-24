@@ -1,5 +1,6 @@
 import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, SYMBOL_COUNT } from './symbols.ts'
 import type { HoldConfig } from './hold.ts'
+import type { FreeConfig } from './free.ts'
 
 /** Weights are symbol counts on that reel's strip, indexed by symbol id. */
 export type ReelWeights = readonly number[]
@@ -66,6 +67,8 @@ export interface GameConfig {
   readonly progressive?: Progressive
   /** Hold and spin. Absent on machines without it. */
   readonly hold?: HoldConfig
+  /** Free spins on a second scatter. Absent on machines without them. */
+  readonly free?: FreeConfig
 }
 
 /**

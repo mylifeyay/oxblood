@@ -1,5 +1,5 @@
 import { tierPay, type GameConfig } from '../game/config.ts'
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN } from '../game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, FREE } from '../game/symbols.ts'
 import { PAYLINE_ROWS, REELS, ROWS } from '../game/paylines.ts'
 import { FACE_CLASS, type SymbolFace } from './symbols.ts'
 import { openSheet } from './sheet.ts'
@@ -103,6 +103,20 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
     scatterRow.append(glyph(SCATTER))
     scatterRow.append(document.createTextNode(' pays anywhere, and plays a clip.'))
     body.append(scatterRow)
+
+    if (config.free) {
+      const freeRow = document.createElement('p')
+      freeRow.className = 'help-inline'
+      freeRow.append(glyph(FREE))
+      freeRow.append(
+        document.createTextNode(
+          ` buys free spins. Land ${config.free.trigger} for ${config.free.spins} of them, and the` +
+            ` multiplier climbs a step on every free spin that pays, up to ${config.free.multiplierCap}x.` +
+            ` Land ${config.free.trigger} again during the round for ${config.free.retrigger} more spins.`,
+        ),
+      )
+      body.append(freeRow)
+    }
 
     if (config.hold) {
       const holdRow = document.createElement('p')

@@ -167,6 +167,26 @@ export class ReelView {
     return this.reels.map((r) => mod(Math.round(r.pos), r.strip.length))
   }
 
+  /**
+   * Drops the reels onto `stops` with no animation at all.
+   *
+   * Used to put the base screen back after a free spin round has borrowed the
+   * reels, so what is on the glass matches the spin the rest of the interface
+   * still thinks it is showing.
+   */
+  settleAt(stops: readonly number[]): void {
+    if (this.running) return
+    this.reels.forEach((reel, i) => {
+      const stop = stops[i]
+      if (stop === undefined) return
+      reel.pos = mod(stop, reel.strip.length)
+      reel.lift = 0
+      reel.blur = 0
+      reel.phase = 'idle'
+      this.draw(reel)
+    })
+  }
+
   /** How many scatters reel `r` will show when it stops at `stop`. */
   private scattersAt(r: number, stop: number): number {
     const strip = this.reels[r]!.strip

@@ -1,4 +1,4 @@
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN } from '../game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, FREE } from '../game/symbols.ts'
 import type { SymbolFace } from './symbols.ts'
 
 /** Reel timings. A cabinet's hands feel different from the next one's. */
@@ -71,6 +71,20 @@ emberFaces[M2] = face('✷', 'medium', 'flare')
 emberFaces[WILD] = face('✳', 'wild', 'wild')
 emberFaces[SCATTER] = face('❂', 'scatter', 'scatter')
 emberFaces[COIN] = face('◉', 'coin', 'coin')
+
+// Money and gold, in ascending order of what it is worth: loose change, a gem,
+// a bar, a nugget, then the crown and the sign itself.
+const giltFaces: SymbolFace[] = []
+giltFaces[L1] = face('¤', 'low', 'coin')
+giltFaces[L2] = face('◈', 'low', 'gem')
+giltFaces[L3] = face('▬', 'low', 'ingot')
+giltFaces[L4] = face('⬢', 'low', 'nugget')
+giltFaces[M1] = face('♛', 'medium', 'crown')
+giltFaces[M2] = face('$', 'medium', 'money')
+giltFaces[WILD] = face('✸', 'wild', 'wild')
+giltFaces[SCATTER] = face('❈', 'scatter', 'scatter')
+giltFaces[COIN] = face('◉', 'coin', 'coin')
+giltFaces[FREE] = face('✪', 'free', 'vault')
 
 export const SKINS: Record<string, Skin> = {
   oxblood: {
@@ -173,6 +187,41 @@ export const SKINS: Record<string, Skin> = {
       riserFrom: 240,
       riserTo: 1300,
       riserType: 'sawtooth',
+    },
+  },
+
+  // Three reels, so the whole spin is over in a moment: the fastest hands in
+  // the place, with a bright metallic voice to match the gold.
+  gilt: {
+    faces: giltFaces,
+    motion: {
+      spinSpeed: 0.034,
+      baseSpinMs: 560,
+      staggerMs: 210,
+      stopMs: 260,
+      settleMs: 160,
+      overshootPx: 14,
+      liftPx: 14,
+      anticipationMs: 900,
+    },
+    sound: {
+      clackHz: 1720,
+      clackDecay: 0.05,
+      thumpHz: 132,
+      tickBase: 1046,
+      tickSpread: 1400,
+      chime: 'triangle',
+      smallRun: [1174, 1568],
+      mediumRun: [1174, 1568, 1975],
+      bigRun: [784, 1174, 1568, 1975, 2637],
+      bonusRuns: {
+        mini: { notes: [587, 784, 988], type: 'triangle', length: 0.26 },
+        minor: { notes: [784, 988, 1318, 1568], type: 'triangle', length: 0.34 },
+        major: { notes: [294, 440, 587, 784, 988, 1318], type: 'triangle', length: 0.66 },
+      },
+      riserFrom: 210,
+      riserTo: 1100,
+      riserType: 'square',
     },
   },
 }

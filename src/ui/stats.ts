@@ -145,12 +145,30 @@ function notes(book: Book, config: GameConfig): HTMLElement {
     'The reels are decided before they start turning. The slowdown when a scatter is close only ever draws out what has already landed — near misses are never manufactured.',
   )
 
-  section(
-    'This machine',
+  const ways = config.rows ** config.reels.length
+  const shape =
     config.evaluation === 'ways'
-      ? `Two hundred and forty-three ways: a symbol pays on adjacent reels from the first, multiplied by how many places it lands on each. Wins come often and most are small. Bet is ${config.totalBet} at the base level.`
-      : `${config.lineCount} fixed lines, paying left to right from reel one. Bet is ${config.totalBet} at the base level, ${config.betPerLine} a line.`,
-  )
+      ? `${config.reels.length} reels of ${config.rows} is ${ways.toLocaleString('en-GB')} ways: a symbol pays on adjacent reels from the first, multiplied by how many places it lands on each. Wins come often and most are small. Bet is ${config.totalBet} at the base level.`
+      : `${config.lineCount} fixed lines, paying left to right from reel one. Bet is ${config.totalBet} at the base level, ${config.betPerLine} a line.`
+
+  const features: string[] = []
+  if (config.progressive) {
+    features.push(
+      `A progressive pot takes ${(config.progressive.contribution * 100).toFixed(0)}% of every wager and pays out whole on ${config.progressive.triggerScatters} scatters. Because the money in is the money out, it very nearly funds itself — the only extra it costs is the seed it restarts from.`,
+    )
+  }
+  if (config.hold) {
+    features.push(
+      `Hold and spin takes about a fifth of the machine's return. ${config.hold.triggerCount} lanterns lock the board and each new one buys the respins back, so the reels pay less than they otherwise would to fund it.`,
+    )
+  }
+  if (config.free) {
+    features.push(
+      `Free spins run on a second scatter, separate from the one that pays the tiers. The multiplier climbs a step on every free spin that pays and never falls back inside a round, which is where the round's value is concentrated: the last spins are worth several times the first. The paying scatter sits the round out, so a clip stays something you win on a paid spin.`,
+    )
+  }
+
+  section('This machine', [shape, ...features].join(' '))
 
   const kept = document.createElement('p')
   kept.textContent = `The ledger keeps its last ${count(MAX_ENTRIES)} entries in full and folds anything older into a rolling total. It is holding ${count(book.retained)}.`

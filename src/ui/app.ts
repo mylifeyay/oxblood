@@ -2,6 +2,7 @@ import { tierPay } from '../game/config.ts'
 import { SlotMachine, type SpinSnapshot } from '../game/machine.ts'
 import { PAYLINE_ROWS } from '../game/paylines.ts'
 import { SCATTER, WILD, COIN, L1 } from '../game/symbols.ts'
+import { evaluateDetail } from '../game/evaluate.ts'
 import { resolveHold } from '../game/hold.ts'
 import { Book } from '../game/book.ts'
 import { cloneTotals, type Totals } from '../game/ledger.ts'
@@ -12,6 +13,7 @@ import { BigWin, Particles, prefersReducedMotion, winTierFor } from './celebrate
 import { openMenu } from './menu.ts'
 import { BonusStage } from './bonus.ts'
 import { HoldStage } from './holdstage.ts'
+import { FreeStage } from './freestage.ts'
 import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
 import { openStats } from './stats.ts'
@@ -61,6 +63,7 @@ export async function startGame(): Promise<void> {
   const sound = new Sound(skin.sound)
   const bonus = new BonusStage(Math.random, sound)
   const holdStage = new HoldStage(sound)
+  const freeStage = new FreeStage(sound, need('tiers'))
   const particles = new Particles(frame)
   const bigWin = new BigWin(frame)
   const credits = new CreditMeter(creditMeter, (progress) => sound.coinTick(progress))
@@ -139,7 +142,10 @@ export async function startGame(): Promise<void> {
     winLayer.append(el)
   }
 
-  const showWins = (snap: SpinSnapshot): void => {
+  /** Everything win highlighting needs. A free spin has no tier of its own. */
+  type Screen = Pick<SpinSnapshot, 'grid' | 'lineWins'> & { tier?: SpinSnapshot['tier'] }
+
+  const showWins = (snap: Screen): void => {
     clearWins()
     const seen = new Set<number>()
     const rows = CONFIG.rows
@@ -193,6 +199,15 @@ export async function startGame(): Promise<void> {
       plural = true
     }
 
+    // A spin that bought a round is described by what the round paid, not by
+    // the screen that bought it — that screen is usually worth nothing itself.
+    if (snap.free) {
+      const round = `${snap.free.played} free spins`
+      if (parts.length === 0) return snap.freePayout > 0 ? `${round} pay ${snap.freePayout}` : `${round} pay nothing`
+      parts.push(round)
+      plural = true
+    }
+
     if (parts.length === 0) return 'No win'
     if (parts.length > 1) plural = true
     return `${parts.join(' and ')} ${plural ? 'pay' : 'pays'} ${snap.totalPayout}`
@@ -221,6 +236,8 @@ export async function startGame(): Promise<void> {
     // The lanterns are their own thing, but in the books they are a line win —
     // they come off the reels, not out of a tier.
     if (snap.holdPayout > 0) book.append({ t: 'win', amount: snap.holdPayout, at, kind: 'line' })
+    // Free spins pay off the reels, so they book as reel wins too.
+    if (snap.freePayout > 0) book.append({ t: 'win', amount: snap.freePayout, at, kind: 'line' })
     if (CONFIG.progressive) void saveSetting(potKey, machine.jackpot)
 
     showWins(snap)
@@ -257,10 +274,20 @@ export async function startGame(): Promise<void> {
       } else if (snap.tier) {
         await bonus.reveal(snap.tier.name, snap.bonusPayout)
         await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
-      } else if (snap.totalPayout > 0 && !snap.hold) {
+      } else if (snap.totalPayout > 0 && !snap.hold && !snap.free) {
         await celebrate(snap.totalPayout)
-      } else {
+      } else if (!snap.free) {
         credits.set(book.balance)
+      }
+
+      // The round goes last: it borrows the reels, and everything before it
+      // wants the screen that actually triggered it still on the glass.
+      if (snap.free) {
+        await playFreeRound(snap.free)
+        view.settleAt(snap.stops)
+        showWins(snap)
+        setReadout(describe(snap))
+        await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
       }
     } finally {
       revealing = false
@@ -337,6 +364,70 @@ export async function startGame(): Promise<void> {
     cabinet.classList.remove('is-shaking')
     void cabinet.offsetWidth
     cabinet.classList.add('is-shaking')
+  }
+
+  /**
+   * The reel animation as a promise, so a free round can await each spin.
+   *
+   * `spinTo` drops its callback if the reels are already turning — the guard
+   * that makes a double tap harmless. Nothing can start a spin mid-round, but a
+   * promise that could never settle would hang the round rather than glitch it,
+   * so the impossible case resolves instead of waiting forever.
+   */
+  const spinReels = (stops: readonly number[]): Promise<void> =>
+    new Promise((done) => {
+      if (view.busy) {
+        done()
+        return
+      }
+      view.spinTo(stops, done)
+    })
+
+  /**
+   * Plays a free spin round out on the real cabinet.
+   *
+   * Everything has already been decided — this walks the spins the engine
+   * handed over, turning the reels to each one in turn. The multiplier only
+   * ratchets after a paying spin, which is the beat the whole feature is built
+   * around, so it gets its own moment before the next spin starts.
+   */
+  const playFreeRound = async (free: NonNullable<SpinSnapshot['free']>): Promise<void> => {
+    const cfg = CONFIG.free!
+    await freeStage.intro(cfg.spins)
+
+    let running = 0
+    let multiplier = 1
+    for (const fs of free.spins) {
+      freeStage.update(fs.spinsLeft + 1, fs.multiplier, running)
+      clearWins()
+      setReadout(`Free spin${fs.multiplier > 1 ? ` at ${fs.multiplier}x` : ''}`)
+      await spinReels(fs.stops)
+
+      const { wins } = evaluateDetail(fs.grid, CONFIG, machine.betPerLine)
+      showWins({ grid: fs.grid, lineWins: wins })
+
+      running += fs.pay
+      freeStage.update(fs.spinsLeft, multiplier, running)
+      if (fs.pay > 0) {
+        setReadout(fs.multiplier > 1 ? `${fs.basePay} at ${fs.multiplier}x pays ${fs.pay}` : `Pays ${fs.pay}`)
+        const tier = winTierFor(fs.pay, machine.totalBet)
+        sound.win(tier === 'none' ? 'small' : tier)
+        await new Promise((r) => setTimeout(r, 520))
+      } else {
+        setReadout('No win')
+        await new Promise((r) => setTimeout(r, 240))
+      }
+
+      if (fs.added > 0) await freeStage.award(fs.added)
+      if (fs.basePay > 0 && multiplier < cfg.multiplierCap) {
+        multiplier++
+        freeStage.ratchet(multiplier)
+        await new Promise((r) => setTimeout(r, 340))
+      }
+    }
+
+    clearWins()
+    await freeStage.outro(free.total, free.played, free.finalMultiplier)
   }
 
   const celebrate = async (payout: number): Promise<void> => {
@@ -461,6 +552,16 @@ export async function startGame(): Promise<void> {
     // A big line win needs twenty times the bet and is far too rare to wait for.
     hooks.__celebrate = (payout: number) => celebrate(payout)
     // Hold and spin fires once in two hundred and fifty spins.
+    // A round lands once in a hundred and thirty spins. Rolling until the reels
+    // buy one keeps the replay a real round rather than a staged one.
+    hooks.__free = () => {
+      if (!CONFIG.free) return null
+      for (let i = 0; i < 20000; i++) {
+        machine.next()
+        if (machine.free) return playFreeRound(machine.free)
+      }
+      return null
+    }
     hooks.__hold = (coins = CONFIG.hold?.triggerCount ?? 6) => {
       const cells = new Int8Array(CONFIG.reels.length * CONFIG.rows).fill(L1)
       for (let i = 0; i < coins; i++) cells[i] = COIN

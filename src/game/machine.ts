@@ -4,6 +4,7 @@ import { buildStrips, type Strip } from './reels.ts'
 import { countScatters, evaluateDetail, evaluateTotal, type LineWin } from './evaluate.ts'
 import { mulberry32, type Rng } from './random.ts'
 import { countCoins, resolveHold, type HoldResult } from './hold.ts'
+import { countFrees, resolveFree, type FreeResult } from './free.ts'
 
 const MAX_REROLLS = 20000
 const COUNTER_CAP = 1e9
@@ -22,6 +23,8 @@ export interface SpinSnapshot {
   readonly jackpotPayout: number
   readonly hold: HoldResult | null
   readonly holdPayout: number
+  readonly free: FreeResult | null
+  readonly freePayout: number
 }
 
 /**
@@ -54,6 +57,9 @@ export class SlotMachine {
   /** The hold and spin feature, when this spin started one. */
   hold: HoldResult | null = null
   holdPayout = 0
+  /** The free spin round, when this spin bought one. */
+  free: FreeResult | null = null
+  freePayout = 0
 
   private readonly rng: Rng
   private betPerLineValue: number
@@ -115,6 +121,11 @@ export class SlotMachine {
   /** How many lanterns are on the screen as rolled. */
   get coinCount(): number {
     return countCoins(this.grid)
+  }
+
+  /** How many free scatters are on the screen as rolled. */
+  get freeCount(): number {
+    return countFrees(this.grid)
   }
 
   /** The lowest scatter count that pays anything. */
@@ -191,13 +202,53 @@ export class SlotMachine {
     this.tier = this.tierFor(this.scatterCount)
     this.bonusPayout = this.tier ? tierPay(this.tier, this.totalBet) : 0
     this.linePayout = evaluateTotal(this.grid, this.config, this.betPerLineValue)
-    this.totalPayout = this.linePayout + this.bonusPayout + this.jackpotPayout + this.holdPayout
+
+    // Free spins run here, on their own draws, before the spin is handed over.
+    // They cost nothing and they do not touch the pity timer or the cooldown:
+    // those count paid spins, and a free spin is not one.
+    this.free = this.resolveFreeRound()
+    this.freePayout = this.free?.total ?? 0
+
+    this.totalPayout =
+      this.linePayout + this.bonusPayout + this.jackpotPayout + this.holdPayout + this.freePayout
 
     if (this.tier?.name === 'mini') this.spinsSinceMini = 0
     else this.spinsSinceMini = Math.min(this.spinsSinceMini + 1, COUNTER_CAP)
 
     if (this.tier) this.spinsSinceBonus = 0
     else this.spinsSinceBonus = Math.min(this.spinsSinceBonus + 1, COUNTER_CAP)
+  }
+
+  /**
+   * Plays out a free spin round if the base screen bought one.
+   *
+   * Each free spin is an honest draw from the same strips, re-rolled past any
+   * screen that would have paid a tier. The clip stays a paid-spin event, which
+   * keeps the cooldown between clips true and keeps a reveal from landing in
+   * the middle of the round.
+   */
+  private resolveFreeRound(): FreeResult | null {
+    const cfg = this.config.free
+    if (!cfg || countFrees(this.grid) < cfg.trigger) return null
+
+    // The round borrows the reels, so the base screen is put back afterwards.
+    const baseGrid = this.grid.slice()
+    const baseStops = Int32Array.from(this.stops)
+    const baseScatters = this.scatterCount
+
+    const result = resolveFree(this.config, () => {
+      this.rollUntil((s) => s < this.minBonusScatters, 'no tier lands inside free spins')
+      return {
+        stops: Array.from(this.stops),
+        grid: this.grid.slice(),
+        basePay: evaluateTotal(this.grid, this.config, this.betPerLineValue),
+      }
+    })
+
+    this.grid.set(baseGrid)
+    this.stops.set(baseStops)
+    this.scatterCount = baseScatters
+    return result
   }
 
   /** A plain object copy of the last spin, for the parts that are not hot. */
@@ -217,6 +268,8 @@ export class SlotMachine {
       jackpotPayout: this.jackpotPayout,
       hold: this.hold,
       holdPayout: this.holdPayout,
+      free: this.free,
+      freePayout: this.freePayout,
     }
   }
 }

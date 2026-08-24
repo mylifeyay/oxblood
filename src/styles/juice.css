@@ -305,3 +305,101 @@
     animation: none;
   }
 }
+
+/* ---- Free spins ---- */
+
+.freecard {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: radial-gradient(
+      120% 80% at 50% 45%,
+      color-mix(in srgb, var(--amber) 14%, transparent),
+      transparent
+    ),
+    rgba(6, 5, 3, 0.94);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.freecard[hidden] {
+  display: none;
+}
+
+.freecard.is-open {
+  opacity: 1;
+}
+
+.freecard__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 11vw, 46px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-shadow: 0 0 30px var(--amber-glow);
+}
+
+.freecard__body {
+  max-width: 22em;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ivory-dim);
+}
+
+.freeflash {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 47;
+  padding: 9px 20px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  background: rgba(10, 8, 4, 0.92);
+  font-family: var(--font-display);
+  font-size: clamp(16px, 5vw, 22px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.freeflash[hidden] {
+  display: none;
+}
+
+.freeflash.is-open {
+  opacity: 1;
+}
+
+/* The room warms while a round is running. */
+html.is-free .cabinet {
+  box-shadow: inset 0 0 90px color-mix(in srgb, var(--amber) 18%, transparent);
+}
+
+/* The round's three readings, in the tier signage's clothes. */
+.tier--free .tier__name {
+  color: var(--ivory-faint);
+}
+
+.tier--free .tier__pay {
+  color: var(--amber);
+}
+
+.tier__pay--mult.is-up {
+  display: inline-block;
+  animation: free-ratchet 420ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tier__pay--mult.is-up {
+    animation: none;
+  }
+}

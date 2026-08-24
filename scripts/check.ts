@@ -6,9 +6,13 @@ import { CONFIG } from '../src/game/config.ts'
 import { JADE_CONFIG } from '../src/game/jade.ts'
 import { resolveHold, pickValue } from '../src/game/hold.ts'
 import { EMBER_CONFIG } from '../src/game/ember.ts'
+import { GILT_CONFIG } from '../src/game/gilt.ts'
+import { resolveFree, countFrees } from '../src/game/free.ts'
+import { MACHINES, isEarned } from '../src/game/machines.ts'
+import { emptyTotals } from '../src/game/ledger.ts'
 import { evaluateWaysTotal } from '../src/game/evaluate.ts'
 import { SlotMachine } from '../src/game/machine.ts'
-import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, SYMBOL_COUNT } from '../src/game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, FREE, SYMBOL_COUNT } from '../src/game/symbols.ts'
 import { evaluateLines, countScatters } from '../src/game/evaluate.ts'
 import { buildStrips } from '../src/game/reels.ts'
 import { reelScatterDistribution } from '../src/game/analysis.ts'
@@ -443,6 +447,100 @@ function holdGrid(coins: number): Int8Array {
   check('lanterns pay nothing on the reels', coinRow.filter((v) => v !== 0).length, 0)
   const coinBoard = new Int8Array(JADE_CELLS).fill(COIN)
   check('a screen of nothing but lanterns wins nothing', evaluateWaysTotal(coinBoard, JADE_CONFIG, 20), 0)
+}
+
+console.log('\nfree spins')
+
+const FREE_CFG = GILT_CONFIG.free!
+const GILT_CELLS = GILT_CONFIG.reels.length * GILT_CONFIG.rows
+
+/** A draw that pays `basePay` and shows `frees` vault symbols. */
+const draw = (basePay: number, frees = 0) => {
+  const grid = new Int8Array(GILT_CELLS).fill(L1)
+  for (let i = 0; i < frees; i++) grid[i] = FREE
+  return { stops: [0, 0, 0], grid, basePay }
+}
+
+{
+  // The multiplier starts at one, and only a paying spin moves it on. Four
+  // paying spins in a row are worth 1x, 2x, 3x then 4x.
+  const paying = resolveFree(GILT_CONFIG, () => draw(10))!
+  check('a round plays its awarded spins', paying.played, FREE_CFG.spins)
+  check('the multiplier starts at one', paying.spins[0]!.multiplier, 1)
+  check('it ratchets one step per paying spin', paying.spins.slice(0, 4).map((s) => s.multiplier), [1, 2, 3, 4])
+  check(
+    'the round pays the sum of its multiplied spins',
+    paying.total,
+    paying.spins.reduce((sum, s) => sum + s.basePay * s.multiplier, 0),
+  )
+}
+
+{
+  // A spin that pays nothing leaves the multiplier alone: a cold streak costs
+  // progress rather than undoing it.
+  let n = 0
+  const alternating = resolveFree(GILT_CONFIG, () => draw(n++ % 2 === 0 ? 10 : 0))!
+  check('a dry spin does not ratchet', alternating.spins.map((s) => s.multiplier), [1, 2, 2, 3, 3, 4, 4, 5])
+  const dry = resolveFree(GILT_CONFIG, () => draw(0))!
+  check('a round that never pays stays at one', dry.finalMultiplier, 1)
+  check('a round that never pays is worth nothing', dry.total, 0)
+}
+
+{
+  // The cap holds however long the round runs.
+  const long = resolveFree({ ...GILT_CONFIG, free: { ...FREE_CFG, spins: 200 } }, () => draw(1))!
+  check('the multiplier stops at the cap', long.finalMultiplier, FREE_CFG.multiplierCap)
+  check('no spin exceeds the cap', long.spins.every((s) => s.multiplier <= FREE_CFG.multiplierCap), true)
+}
+
+{
+  // A retrigger adds spins and leaves the climb alone.
+  let n = 0
+  const retriggered = resolveFree(GILT_CONFIG, () => draw(0, n++ === 0 ? FREE_CFG.trigger : 0))!
+  check('a retrigger adds its spins', retriggered.played, FREE_CFG.spins + FREE_CFG.retrigger)
+  check('the retrigger is recorded on the spin that did it', retriggered.spins[0]!.added, FREE_CFG.retrigger)
+  check('a retrigger does not touch the multiplier', retriggered.finalMultiplier, 1)
+  // One short of the trigger adds nothing.
+  const near = resolveFree(GILT_CONFIG, () => draw(0, FREE_CFG.trigger - 1))!
+  check('one vault short adds no spins', near.played, FREE_CFG.spins)
+}
+
+{
+  // Spins left counts down to zero and never lies about what is coming.
+  const round = resolveFree(GILT_CONFIG, () => draw(0))!
+  check('spins left counts down', round.spins.map((s) => s.spinsLeft), [7, 6, 5, 4, 3, 2, 1, 0])
+}
+
+{
+  // The cabinet itself: only Gilt runs free spins, and the vault never pays.
+  check('only Gilt runs free spins', [CONFIG.free, JADE_CONFIG.free, EMBER_CONFIG.free], [undefined, undefined, undefined])
+  const freeRow = GILT_CONFIG.paytable[FREE] ?? []
+  check('the vault pays nothing on the reels', freeRow.filter((v) => v !== 0).length, 0)
+  const allVaults = new Int8Array(GILT_CELLS).fill(FREE)
+  check('a screen of nothing but vaults wins nothing', evaluateWaysTotal(allVaults, GILT_CONFIG, 50), 0)
+  check('counting vaults', [countFrees(allVaults), countFrees(new Int8Array(GILT_CELLS).fill(L1))], [GILT_CELLS, 0])
+}
+
+{
+  // Three reels means one rung on the paytable, and every paying symbol has to
+  // be on it — the multiplier only asks whether a spin paid, so a zero here
+  // would quietly break the tuner's assumption that the round stays linear.
+  const rungs = new Set(GILT_CONFIG.paytable.map((row) => row.length))
+  check('the whole paytable is one rung deep', [...rungs], [1])
+  const paying = [L1, L2, L3, L4, M1, M2].map((id) => GILT_CONFIG.paytable[id]![0]!)
+  check('every paying symbol pays something', paying.filter((p) => p <= 0).length, 0)
+}
+
+{
+  // The vault is earned with a Major, and nothing else opens it.
+  const gilt = MACHINES.find((m) => m.id === 'gilt-vault')!
+  const none = emptyTotals()
+  const ground = { ...emptyTotals(), wagered: 10_000_000, spins: 1_000_000 }
+  const won = { ...emptyTotals(), tierCounts: { mini: 400, minor: 40, major: 1 } }
+  check('the vault starts locked', isEarned(gilt, none), false)
+  check('turnover alone does not open it', isEarned(gilt, ground), false)
+  check('one Major opens it', isEarned(gilt, won), true)
+  check('the vault is built', gilt.config !== null, true)
 }
 
 console.log(`\n${failures === 0 ? 'all checks passed' : `${failures} CHECK(S) FAILED`}\n`)

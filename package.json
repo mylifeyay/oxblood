@@ -14,7 +14,10 @@
     "simulate": "node scripts/simulate.ts --spins 10000000",
     "tune": "node scripts/tune.ts",
     "paytable": "node scripts/paytable.ts",
-    "build:pages": "VITE_BASE=/${REPO:-slot-game}/ npm run build"
+    "build:pages": "VITE_BASE=/${REPO:-slot-game}/ npm run build",
+    "regress": "node scripts/regress.ts",
+    "tune:gilt": "node scripts/tune-gilt.ts",
+    "verify:gilt": "node scripts/verify-gilt.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

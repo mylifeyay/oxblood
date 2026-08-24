@@ -1,4 +1,4 @@
-import { COIN, SCATTER, SYMBOL_COUNT, WILD } from './symbols.ts'
+import { COIN, FREE, SCATTER, SYMBOL_COUNT, WILD } from './symbols.ts'
 import { LINE_COUNT, PAYLINES, REELS } from './paylines.ts'
 import type { GameConfig } from './config.ts'
 
@@ -46,7 +46,7 @@ function scanLine(grid: Int8Array, line: number, config: GameConfig): number {
 
   if (wilds < REELS) {
     const symbol = grid[wilds * rows + PAYLINES[base + wilds]!]!
-    if (symbol !== SCATTER) {
+    if (symbol !== SCATTER && symbol !== FREE) {
       let run = wilds + 1
       while (run < REELS) {
         const next = grid[run * rows + PAYLINES[base + run]!]!
@@ -125,7 +125,7 @@ function scanWays(grid: Int8Array, symbol: number, config: GameConfig): { pay: n
 export function evaluateWaysTotal(grid: Int8Array, config: GameConfig, betPerUnit: number): number {
   let total = 0
   for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
-    if (symbol === WILD || symbol === SCATTER || symbol === COIN) continue
+    if (symbol === WILD || symbol === SCATTER || symbol === COIN || symbol === FREE) continue
     total += scanWays(grid, symbol, config).pay
   }
   return total * betPerUnit
@@ -136,7 +136,7 @@ export function evaluateWays(grid: Int8Array, config: GameConfig, betPerUnit: nu
   const wins: LineWin[] = []
   let total = 0
   for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
-    if (symbol === WILD || symbol === SCATTER || symbol === COIN) continue
+    if (symbol === WILD || symbol === SCATTER || symbol === COIN || symbol === FREE) continue
     const { pay, reels } = scanWays(grid, symbol, config)
     if (pay <= 0) continue
     total += pay

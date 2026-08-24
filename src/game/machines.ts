@@ -1,10 +1,17 @@
 import { CONFIG, type GameConfig } from './config.ts'
 import { JADE_CONFIG } from './jade.ts'
 import { EMBER_CONFIG } from './ember.ts'
+import { GILT_CONFIG } from './gilt.ts'
 import type { Totals } from './ledger.ts'
 
-/** What a cabinet is earned with. Spend and time, the way a casino counts you. */
-export type UnlockMetric = 'wagered' | 'spins'
+/**
+ * What a cabinet is earned with.
+ *
+ * Spend and time, the way a casino counts you — and, for the last room, one
+ * thing that cannot be ground out at all: a Major. You do not get into the
+ * vault by turning up. You get in by winning the biggest thing on the floor.
+ */
+export type UnlockMetric = 'wagered' | 'spins' | 'majors'
 
 export interface Unlock {
   readonly metric: UnlockMetric
@@ -60,13 +67,13 @@ export const MACHINES: readonly MachineDef[] = [
     config: EMBER_CONFIG,
   },
   {
-    id: 'ivory-booth',
-    name: 'Ivory Booth',
-    tagline: 'Three by three, one line, nowhere to hide',
-    theme: 'ivory',
-    accent: '#F2E8DA',
-    unlock: { metric: 'wagered', at: 250_000 },
-    config: null,
+    id: 'gilt-vault',
+    name: 'Gilt Vault',
+    tagline: 'Twenty-seven ways, and free spins that build',
+    theme: 'gilt',
+    accent: '#E8B94A',
+    unlock: { metric: 'majors', at: 1 },
+    config: GILT_CONFIG,
   },
 ]
 
@@ -74,8 +81,11 @@ export const DEFAULT_MACHINE = MACHINES[0]!
 
 export const machineById = (id: string): MachineDef => MACHINES.find((m) => m.id === id) ?? DEFAULT_MACHINE
 
-const progressOf = (unlock: Unlock, lifetime: Totals): number =>
-  unlock.metric === 'wagered' ? lifetime.wagered : lifetime.spins
+const progressOf = (unlock: Unlock, lifetime: Totals): number => {
+  if (unlock.metric === 'wagered') return lifetime.wagered
+  if (unlock.metric === 'majors') return lifetime.tierCounts.major
+  return lifetime.spins
+}
 
 /** Zero to one. Never shown as a number, only as a bar. */
 export const unlockProgress = (machine: MachineDef, lifetime: Totals): number =>
