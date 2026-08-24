@@ -8,6 +8,7 @@
 @import './library.css';
 @import './bonus.css';
 @import './juice.css';
+@import './themes.css';
 
 @media (prefers-reduced-motion: reduce) {
   *,

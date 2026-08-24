@@ -1,8 +1,9 @@
-import { CONFIG, tierPay } from '../game/config.ts'
+import { tierPay } from '../game/config.ts'
 import { SlotMachine, type SpinSnapshot } from '../game/machine.ts'
 import { PAYLINE_ROWS, REELS, ROWS } from '../game/paylines.ts'
-import { SCATTER } from '../game/symbols.ts'
+import { SCATTER, WILD } from '../game/symbols.ts'
 import { Book } from '../game/book.ts'
+import { cloneTotals, type Totals } from '../game/ledger.ts'
 import { ReelView } from './reelview.ts'
 import { Sound } from '../audio/sound.ts'
 import { CreditMeter } from './meter.ts'
@@ -13,6 +14,8 @@ import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
 import { openStats } from './stats.ts'
 import { DEFAULT_MACHINE, machineById } from '../game/machines.ts'
+import { newlyPlayable } from './machines.ts'
+import { skinFor } from './skins.ts'
 import { saveSetting, loadSetting as loadPref } from '../game/settings.ts'
 
 function need<T extends HTMLElement>(id: string): T {
@@ -33,13 +36,25 @@ export async function startGame(): Promise<void> {
   const menuButton = need<HTMLButtonElement>('menu')
   const betButton = need<HTMLButtonElement>('bet')
   const helpButton = need<HTMLButtonElement>('help')
-  const tierPayEls = new Map(CONFIG.tiers.map((tier) => [tier.name, need(`tier-pay-${tier.name}`)]))
   const title = need('marquee-title')
+  const subtitle = need('marquee-sub')
+  const tierPayEls = new Map((['mini', 'minor', 'major'] as const).map((name) => [name, need(`tier-pay-${name}`)]))
 
   const cabinet = need('cabinet')
+
+  // Which cabinet is on. Everything below is built from it: the payout config,
+  // the symbols, the palette, the hands and the voice.
+  const book = await Book.open()
+  const active = machineById(await loadPref('machine', DEFAULT_MACHINE.id))
+  const CONFIG = active.config ?? DEFAULT_MACHINE.config!
+  const skin = skinFor(active.theme)
+  document.documentElement.dataset.machine = active.theme
+  title.textContent = active.name
+  subtitle.textContent = active.tagline
+
   const machine = new SlotMachine(CONFIG)
-  const view = new ReelView(reelsHost, machine.strips)
-  const sound = new Sound()
+  const view = new ReelView(reelsHost, machine.strips, skin.faces, skin.motion)
+  const sound = new Sound(skin.sound)
   const bonus = new BonusStage(Math.random, sound)
   const particles = new Particles(frame)
   const bigWin = new BigWin(frame)
@@ -49,17 +64,12 @@ export async function startGame(): Promise<void> {
     readout.textContent = text
   }
 
-  setReadout('Opening the ledger')
-  const book = await Book.open()
   sound.setMuted(await loadPref('muted', false))
 
   // The bet the player last chose, if it is still one we offer.
   const savedBet = await loadPref('betPerLine', CONFIG.betPerLine)
   machine.betPerLine = CONFIG.betLevels.includes(savedBet) ? savedBet : CONFIG.betPerLine
 
-  // Only one cabinet is built, but the active one is already a stored choice
-  // so a second machine is a data change rather than a rewrite.
-  const activeMachine = machineById(await loadPref('machine', DEFAULT_MACHINE.id))
 
   // The clack as each reel lands, and the riser while one hangs on.
   const risers = new Map<number, { stop(): void }>()
@@ -114,26 +124,33 @@ export async function startGame(): Promise<void> {
   const showWins = (snap: SpinSnapshot): void => {
     clearWins()
     const seen = new Set<number>()
+    const mark = (reel: number, row: number, scatter: boolean): void => {
+      const key = reel * ROWS + row
+      if (seen.has(key)) return
+      seen.add(key)
+      markWin(reel, row, scatter)
+    }
 
     for (const win of snap.lineWins) {
-      const rows = PAYLINE_ROWS[win.line]!
-      for (let reel = 0; reel < win.count; reel++) {
-        const row = rows[reel]!
-        const key = reel * ROWS + row
-        if (seen.has(key)) continue
-        seen.add(key)
-        markWin(reel, row, false)
+      if (CONFIG.evaluation === 'ways') {
+        // A ways win has no line to trace: every place the symbol landed on the
+        // contributing reels is part of it.
+        for (let reel = 0; reel < win.count; reel++) {
+          for (let row = 0; row < ROWS; row++) {
+            const cell = snap.grid[reel * ROWS + row]
+            if (cell === win.symbol || cell === WILD) mark(reel, row, false)
+          }
+        }
+        continue
       }
+      const rows = PAYLINE_ROWS[win.line]!
+      for (let reel = 0; reel < win.count; reel++) mark(reel, rows[reel]!, false)
     }
 
     if (snap.tier) {
       for (let reel = 0; reel < REELS; reel++) {
         for (let row = 0; row < ROWS; row++) {
-          if (snap.grid[reel * ROWS + row] !== SCATTER) continue
-          const key = reel * ROWS + row
-          if (seen.has(key)) continue
-          seen.add(key)
-          markWin(reel, row, true)
+          if (snap.grid[reel * ROWS + row] === SCATTER) mark(reel, row, true)
         }
       }
     }
@@ -147,10 +164,12 @@ export async function startGame(): Promise<void> {
       const name = snap.tier.name
       parts.push(`${name.charAt(0).toUpperCase()}${name.slice(1)} bonus`)
     }
+    // A ways machine has no lines to count; it pays per symbol.
+    const noun = CONFIG.evaluation === 'ways' ? 'symbol' : 'line'
     const lines = snap.lineWins.length
-    if (lines === 1) parts.push('1 line')
+    if (lines === 1) parts.push(`1 ${noun}`)
     else if (lines > 1) {
-      parts.push(`${lines} lines`)
+      parts.push(`${lines} ${noun}s`)
       plural = true
     }
 
@@ -169,7 +188,7 @@ export async function startGame(): Promise<void> {
     helpButton.disabled = locked
   }
 
-  const resolve = async (snap: SpinSnapshot): Promise<void> => {
+  const resolve = async (snap: SpinSnapshot, before: Totals): Promise<void> => {
     lastResult = snap
     const at = Date.now()
 
@@ -180,6 +199,7 @@ export async function startGame(): Promise<void> {
 
     showWins(snap)
     setReadout(describe(snap))
+    announceUnlocks(before)
 
     revealing = true
     refreshButtons()
@@ -200,6 +220,27 @@ export async function startGame(): Promise<void> {
 
     refreshButtons()
     if (book.balance < machine.totalBet) setReadout(shortfallMessage())
+  }
+
+  /** A cabinet earned mid-session should say so, once. */
+  const announceUnlocks = (before: Totals): void => {
+    for (const earned of newlyPlayable(before, book.lifetime)) {
+      const toast = document.createElement('div')
+      toast.className = 'toast'
+      toast.style.setProperty('--accent', earned.accent)
+      toast.innerHTML = ''
+      const label = document.createElement('span')
+      label.className = 'toast__label'
+      label.textContent = 'New machine'
+      const name = document.createElement('span')
+      name.className = 'toast__name'
+      name.textContent = earned.name
+      toast.append(label, name)
+      cabinet.append(toast)
+      sound.win('big')
+      window.setTimeout(() => toast.classList.add('is-out'), 4200)
+      window.setTimeout(() => toast.remove(), 4800)
+    }
   }
 
   /** Out of credit for this bet, which a smaller bet might still cover. */
@@ -284,6 +325,9 @@ export async function startGame(): Promise<void> {
     sound.unlock()
     bonus.prime()
 
+    // Snapshot before the wager lands, or a machine earned by this very spin
+    // would already look earned by the time the crossing is checked.
+    const before = cloneTotals(book.lifetime)
     book.append({ t: 'wager', amount: machine.totalBet, at: Date.now() })
     lastResult = null
     credits.set(book.balance)
@@ -301,7 +345,7 @@ export async function startGame(): Promise<void> {
     // seek has resolved and the reveal is instant.
     if (snap.tier) void bonus.prefetch(snap.tier.name)
 
-    view.spinTo(snap.stops, () => void resolve(snap))
+    view.spinTo(snap.stops, () => void resolve(snap, before))
   }
 
   const addCredit = (): void => {
@@ -331,7 +375,7 @@ export async function startGame(): Promise<void> {
 
   spinButton.addEventListener('click', spin)
   addButton.addEventListener('click', addCredit)
-  menuButton.addEventListener('click', () => openMenu(book, sound, activeMachine.id))
+  menuButton.addEventListener('click', () => openMenu(book, sound, active.id))
 
   // Stats are not on the menu. Three taps on the marquee opens them.
   let titleTaps = 0
@@ -347,14 +391,14 @@ export async function startGame(): Promise<void> {
     window.clearTimeout(tapTimer)
     sound.unlock()
     sound.reelStop(1)
-    openStats(book, () => {
+    openStats(book, { ...CONFIG, betPerLine: machine.betPerLine }, () => {
       renderMeters()
       refreshButtons()
       setReadout('Statistics reset')
     })
   })
   betButton.addEventListener('click', cycleBet)
-  helpButton.addEventListener('click', () => openHelp(machine.betPerLine))
+  helpButton.addEventListener('click', () => openHelp({ ...CONFIG, betPerLine: machine.betPerLine }, skin.faces))
 
   renderMeters()
   refreshButtons()

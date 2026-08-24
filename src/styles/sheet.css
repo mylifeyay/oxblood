@@ -96,7 +96,7 @@
   padding: 16px 6px;
   border: 1px solid var(--brass);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #3d1e2a, var(--felt));
+  background: linear-gradient(180deg, var(--panel-lift), var(--felt));
   color: var(--amber);
   font-family: var(--font-led);
   font-size: 20px;
@@ -105,7 +105,7 @@
 
 .choice:active {
   transform: translateY(2px);
-  background: linear-gradient(180deg, var(--felt), #24111a);
+  background: linear-gradient(180deg, var(--felt), var(--panel-sink));
 }
 
 /* ---- Stats ---- */
@@ -193,6 +193,19 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--ivory-faint);
+}
+
+.stat-notes__head {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.stat-notes p {
+  color: var(--ivory-dim);
 }
 
 .stat-warn {

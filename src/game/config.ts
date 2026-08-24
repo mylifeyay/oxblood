@@ -27,9 +27,20 @@ export interface BonusTier {
   readonly payMultiple: number
 }
 
+/**
+ * How a screen is scored.
+ *
+ * `lines` pays fixed paylines. `ways` pays any symbol appearing on consecutive
+ * reels from reel 1, multiplying the number of places it appears on each —
+ * five reels of three rows gives 243 ways.
+ */
+export type Evaluation = 'lines' | 'ways'
+
 export interface GameConfig {
+  readonly evaluation: Evaluation
   /** Bet per line at the default level. */
   readonly betPerLine: number
+  /** Paylines when scoring by lines; bet units when scoring by ways. */
   readonly lineCount: number
   /** Total bet at the default level. */
   readonly totalBet: number
@@ -61,6 +72,7 @@ const w = (l1: number, l2: number, l3: number, l4: number, m1: number, m2: numbe
 }
 
 export const CONFIG: GameConfig = {
+  evaluation: 'lines',
   betPerLine: 1,
   lineCount: 10,
   totalBet: 10,

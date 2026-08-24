@@ -9,7 +9,7 @@
   padding: 12px 6px;
   border: 1px solid var(--brass-line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #3a1c28, var(--felt));
+  background: linear-gradient(180deg, var(--panel-lift), var(--felt));
   color: var(--ivory);
   font-size: 12px;
   font-weight: 600;

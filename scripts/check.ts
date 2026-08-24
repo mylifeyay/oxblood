@@ -3,8 +3,10 @@
  * is plausible; these tell you the rules are actually the rules.
  */
 import { CONFIG } from '../src/game/config.ts'
+import { JADE_CONFIG } from '../src/game/jade.ts'
+import { evaluateWaysTotal } from '../src/game/evaluate.ts'
 import { SlotMachine } from '../src/game/machine.ts'
-import { L1, L4, M1, M2, WILD, SCATTER } from '../src/game/symbols.ts'
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER } from '../src/game/symbols.ts'
 import { evaluateLines, countScatters } from '../src/game/evaluate.ts'
 import { buildStrips } from '../src/game/reels.ts'
 import { reelScatterDistribution } from '../src/game/analysis.ts'
@@ -121,6 +123,56 @@ strips.forEach((strip, reel) => {
   for (const symbol of strip.symbols) tally[symbol]!++
   check(`reel ${reel + 1} symbol counts match its weights`, tally, [...CONFIG.reels[reel]!.weights])
 })
+
+console.log('\nWays scoring (Jade Parlour)\n')
+
+{
+  const bet = JADE_CONFIG.betPerLine
+  const jadePay = (symbol: number, count: number): number => JADE_CONFIG.paytable[symbol]![count - 3]!
+
+  /** Builds a grid column by column, each column a list of three symbols. */
+  const columns = (cols: number[][]): Int8Array => {
+    const g = new Int8Array(REELS * ROWS)
+    for (let reel = 0; reel < REELS; reel++)
+      for (let row = 0; row < ROWS; row++) g[reel * ROWS + row] = cols[reel]![row]!
+    return g
+  }
+  const only = (s: number): number[] => [s, s, s]
+  const none = (s: number): number[] => [s, s, s]
+
+  const total = (g: Int8Array): number => evaluateWaysTotal(g, JADE_CONFIG, bet)
+
+  // Three reels of three L1, then a reel with none: 3 x 3 x 3 = 27 ways.
+  check(
+    'three full reels of one symbol is 27 ways',
+    total(columns([only(L1), only(L1), only(L1), none(M2), none(M2)])),
+    jadePay(L1, 3) * 27 * bet,
+  )
+
+  // One place on each of three reels is a single way. Filler is chosen so no
+  // other symbol also spans three reels from the first — in a ways machine
+  // everything on screen is scored, so a careless grid pays twice.
+  check(
+    'one place on each of three reels is 1 way',
+    total(columns([[L1, L2, L3], [L1, L4, M1], [L1, L4, M1], only(M2), only(M2)])),
+    jadePay(L1, 3) * 1 * bet,
+  )
+
+  // A wild column counts for the symbol it stands in for.
+  check(
+    'a full wild reel multiplies the ways',
+    total(columns([[L1, M1, M1], only(WILD), [L1, M1, M1], none(M2), none(M2)])),
+    jadePay(L1, 3) * (1 * 3 * 1) * bet + jadePay(M1, 3) * (2 * 3 * 2) * bet,
+  )
+
+  // Two reels is never a win, however many places it lands on.
+  check('two reels pays nothing', total(columns([only(L1), only(L1), none(M2), none(M2), none(M2)])), 0)
+
+  // Wild pays nothing of its own in a ways machine.
+  check('a screen of wilds does not pay as wild', JADE_CONFIG.paytable[WILD]!.every((p) => p === 0), true)
+
+  check('the scatter never pays a way', total(columns([only(SCATTER), only(SCATTER), only(SCATTER), none(M2), none(M2)])), 0)
+}
 
 console.log('\nSegment unlocking\n')
 

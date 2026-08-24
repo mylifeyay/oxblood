@@ -4,7 +4,6 @@ import {
   isFullyUnlocked,
   listUnlocked,
   segmentCount,
-  SEGMENT_SECONDS,
   toggleLiked,
   unlockedOf,
   unlockedRuns,
@@ -66,9 +65,7 @@ function play(meta: VideoMeta, blob: Blob): void {
 
   const hint = document.createElement('div')
   hint.className = 'viewer__hint'
-  hint.textContent = isFullyUnlocked(meta)
-    ? 'Fully unlocked — tap the picture to pause'
-    : 'Playing the parts you have won. Tap the picture to pause.'
+  hint.textContent = 'Tap the picture to pause'
 
   stage.append(video, close, title, part, hint)
   root.append(stage)
@@ -112,7 +109,7 @@ function play(meta: VideoMeta, blob: Blob): void {
     index++
     if (index >= runs.length) {
       video.pause()
-      part.textContent = 'That is everything you have unlocked'
+      part.textContent = 'End'
       return
     }
     void startRun()
@@ -176,7 +173,7 @@ export function openUnlocked(): void {
     if (clips.length === 0) {
       const empty = document.createElement('p')
       empty.className = 'lib-empty'
-      empty.textContent = 'Nothing unlocked yet. Win a bonus and the part it played turns up here.'
+      empty.textContent = 'Nothing unlocked yet.'
       body.append(empty)
       return
     }
@@ -185,9 +182,7 @@ export function openUnlocked(): void {
     const lead = document.createElement('p')
     lead.className = 'lib-storage'
     lead.textContent =
-      `${clips.length === 1 ? '1 video' : `${clips.length} videos`} opened up` +
-      (complete > 0 ? `, ${complete} of them completely` : '') +
-      `. A win reveals only the ${SEGMENT_SECONDS}-second parts it actually played — keep winning the same video to fill it in.`
+      `${clips.length === 1 ? '1 video' : `${clips.length} videos`}` + (complete > 0 ? ` · ${complete} complete` : '')
     body.append(lead)
 
     const grid = document.createElement('div')

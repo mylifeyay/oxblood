@@ -1,7 +1,7 @@
 import { tierPay, type BonusTier, type GameConfig } from './config.ts'
 import { REELS, ROWS } from './paylines.ts'
 import { buildStrips, type Strip } from './reels.ts'
-import { countScatters, evaluateLineTotal, evaluateLines, type LineWin } from './evaluate.ts'
+import { countScatters, evaluateDetail, evaluateTotal, type LineWin } from './evaluate.ts'
 import { mulberry32, type Rng } from './random.ts'
 
 const MAX_REROLLS = 20000
@@ -143,7 +143,7 @@ export class SlotMachine {
 
     this.tier = this.tierFor(this.scatterCount)
     this.bonusPayout = this.tier ? tierPay(this.tier, this.totalBet) : 0
-    this.linePayout = evaluateLineTotal(this.grid, this.config, this.betPerLineValue)
+    this.linePayout = evaluateTotal(this.grid, this.config, this.betPerLineValue)
     this.totalPayout = this.linePayout + this.bonusPayout
 
     if (this.tier?.name === 'mini') this.spinsSinceMini = 0
@@ -155,7 +155,7 @@ export class SlotMachine {
 
   /** A plain object copy of the last spin, for the parts that are not hot. */
   snapshot(): SpinSnapshot {
-    const { total, wins } = evaluateLines(this.grid, this.config, this.betPerLineValue)
+    const { total, wins } = evaluateDetail(this.grid, this.config, this.betPerLineValue)
     return {
       stops: Array.from(this.stops),
       grid: this.grid.slice(),

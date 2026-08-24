@@ -5,10 +5,6 @@ export const CREDIT_AMOUNTS: readonly number[] = [500, 1000, 5000]
 
 export function openAddCredit(onPick: (amount: number) => void): void {
   const sheet = openSheet('Add credit', (body) => {
-    const note = document.createElement('p')
-    note.className = 'sheet__lead'
-    note.textContent = 'Credits are play money. Take as many as you like, as often as you like.'
-
     const choices = document.createElement('div')
     choices.className = 'choices'
 
@@ -24,6 +20,6 @@ export function openAddCredit(onPick: (amount: number) => void): void {
       choices.append(button)
     }
 
-    body.append(note, choices)
+    body.append(choices)
   })
 }

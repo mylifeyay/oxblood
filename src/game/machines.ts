@@ -1,21 +1,31 @@
 import { CONFIG, type GameConfig } from './config.ts'
+import { JADE_CONFIG } from './jade.ts'
+import type { Totals } from './ledger.ts'
+
+/** What a cabinet is earned with. Spend and time, the way a casino counts you. */
+export type UnlockMetric = 'wagered' | 'spins'
+
+export interface Unlock {
+  readonly metric: UnlockMetric
+  readonly at: number
+}
 
 /**
  * The cabinet registry.
  *
- * There is one machine today. This exists so the second one is data rather than
- * a refactor: a machine carries its own name, accent and payout config, and the
- * game reads whichever is active. Unlocks are expressed as a lifetime spin
- * count, which is the hook a casino-host feature would drive later.
+ * A machine carries its own payout config and its own unlock condition, so
+ * adding one is data plus a skin rather than a rewrite. The thresholds are
+ * deliberately not shown anywhere in the interface — the bar fills, and that
+ * is all the player gets.
  */
 export interface MachineDef {
   readonly id: string
   readonly name: string
   readonly tagline: string
-  /** CSS colour used for its marquee glow and its row in the machine list. */
+  /** Key into the UI skin table, and the CSS theme attribute. */
+  readonly theme: string
   readonly accent: string
-  /** Lifetime spins needed before it can be played. Zero means always open. */
-  readonly unlockAtSpins: number
+  readonly unlock: Unlock
   /** Null until the machine is actually built. */
   readonly config: GameConfig | null
 }
@@ -24,25 +34,28 @@ export const MACHINES: readonly MachineDef[] = [
   {
     id: 'oxblood',
     name: 'Oxblood',
-    tagline: 'Five reels, ten lines, your own clips',
+    tagline: 'Ten lines, brass and lacquer',
+    theme: 'oxblood',
     accent: '#C89B3F',
-    unlockAtSpins: 0,
+    unlock: { metric: 'spins', at: 0 },
     config: CONFIG,
   },
   {
     id: 'jade-parlour',
     name: 'Jade Parlour',
-    tagline: 'Twenty lines, and scatters that hold',
-    accent: '#3FA88C',
-    unlockAtSpins: 5_000,
-    config: null,
+    tagline: 'Two hundred and forty-three ways',
+    theme: 'jade',
+    accent: '#7FE3C0',
+    unlock: { metric: 'wagered', at: 25_000 },
+    config: JADE_CONFIG,
   },
   {
     id: 'ember-room',
     name: 'Ember Room',
     tagline: 'Six reels, and a jackpot that never resets',
+    theme: 'ember',
     accent: '#E2483C',
-    unlockAtSpins: 25_000,
+    unlock: { metric: 'spins', at: 10_000 },
     config: null,
   },
 ]
@@ -51,10 +64,20 @@ export const DEFAULT_MACHINE = MACHINES[0]!
 
 export const machineById = (id: string): MachineDef => MACHINES.find((m) => m.id === id) ?? DEFAULT_MACHINE
 
-/** Built and past its spin threshold. */
-export const isPlayable = (machine: MachineDef, lifetimeSpins: number): boolean =>
-  machine.config !== null && lifetimeSpins >= machine.unlockAtSpins
+const progressOf = (unlock: Unlock, lifetime: Totals): number =>
+  unlock.metric === 'wagered' ? lifetime.wagered : lifetime.spins
 
-/** Built, but not yet earned. */
-export const isLocked = (machine: MachineDef, lifetimeSpins: number): boolean =>
-  machine.config !== null && lifetimeSpins < machine.unlockAtSpins
+/** Zero to one. Never shown as a number, only as a bar. */
+export const unlockProgress = (machine: MachineDef, lifetime: Totals): number =>
+  machine.unlock.at <= 0 ? 1 : Math.min(1, progressOf(machine.unlock, lifetime) / machine.unlock.at)
+
+export const isEarned = (machine: MachineDef, lifetime: Totals): boolean =>
+  progressOf(machine.unlock, lifetime) >= machine.unlock.at
+
+/** Earned and actually built. */
+export const isPlayable = (machine: MachineDef, lifetime: Totals): boolean =>
+  machine.config !== null && isEarned(machine, lifetime)
+
+/** Every machine that is built and earned, in registry order. */
+export const playableMachines = (lifetime: Totals): MachineDef[] =>
+  MACHINES.filter((m) => isPlayable(m, lifetime))

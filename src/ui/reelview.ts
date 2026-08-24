@@ -1,7 +1,8 @@
 import type { Strip } from '../game/reels.ts'
 import { REELS, ROWS } from '../game/paylines.ts'
 import { SCATTER } from '../game/symbols.ts'
-import { FACES, FACE_CLASS } from './symbols.ts'
+import { FACE_CLASS, type SymbolFace } from './symbols.ts'
+import type { MotionProfile } from './skins.ts'
 
 /**
  * The reel display.
@@ -19,23 +20,10 @@ import { FACES, FACE_CLASS } from './symbols.ts'
 
 const TILES = ROWS + 2
 
-/** Strip positions travelled per millisecond. About 30 symbols a second. */
-const SPIN_SPEED = 0.03
-/** How long reel 1 runs flat out before it begins to stop. */
-const BASE_SPIN_MS = 700
-/** Reel N stops this long after reel N-1. Never simultaneously. */
-const STAGGER_MS = 180
-/** Deceleration into the overshoot. */
-const STOP_MS = 340
-/** Snap back from the overshoot. */
-const SETTLE_MS = 220
-/** How far past the resting position a reel travels before snapping back. */
-const OVERSHOOT_PX = 8
 /** Minimum travel once stopping starts, so a reel never jerks to a halt. */
 const MIN_STOP_TRAVEL = 4
 
 /** The anticipation dip: lift, hold, then drop into the spin. */
-const LIFT_PX = 12
 const LIFT_MS = 60
 const HOLD_MS = 80
 const DIP_MS = LIFT_MS + HOLD_MS
@@ -44,9 +32,8 @@ const DROP_MS = 140
 /** Speed ramps up rather than starting flat out. */
 const RAMP_MS = 170
 
-/** An anticipating reel turns at a third speed, for this much longer. */
+/** An anticipating reel turns at a third speed. */
 const ANTICIPATION_SPEED = 1 / 3
-const ANTICIPATION_MS = 1100
 
 /**
  * Vertical motion blur. Four discrete levels rather than a per-frame filter
@@ -98,8 +85,13 @@ export class ReelView {
   /** Fired when an anticipating reel starts and stops its slowdown. */
   onAnticipation: ((index: number, active: boolean) => void) | null = null
 
-  constructor(host: HTMLElement, strips: readonly Strip[]) {
+  private readonly faces: readonly SymbolFace[]
+  private readonly motion: MotionProfile
+
+  constructor(host: HTMLElement, strips: readonly Strip[], faces: readonly SymbolFace[], motion: MotionProfile) {
     this.host = host
+    this.faces = faces
+    this.motion = motion
     host.replaceChildren()
 
     for (let r = 0; r < REELS; r++) {
@@ -214,18 +206,18 @@ export class ReelView {
 
     // Each reel stops after the one before it, and an anticipating reel hangs
     // on longer still, pushing everything behind it back.
-    let stopAt = DIP_MS + BASE_SPIN_MS
+    let stopAt = DIP_MS + this.motion.baseSpinMs
     this.reels.forEach((reel, i) => {
       const anticipating = plan[i]!
-      if (anticipating) stopAt += ANTICIPATION_MS
+      if (anticipating) stopAt += this.motion.anticipationMs
       reel.phase = 'dip'
       reel.elapsed = 0
       reel.spinDuration = stopAt
       reel.anticipating = anticipating
-      reel.slowFrom = stopAt - ANTICIPATION_MS
+      reel.slowFrom = stopAt - this.motion.anticipationMs
       reel.stopTo = stops[i]!
       reel.lift = 0
-      stopAt += STAGGER_MS
+      stopAt += this.motion.staggerMs
     })
 
     this.running = true
@@ -253,7 +245,7 @@ export class ReelView {
           // Lift, hold, then drop into the spin.
           reel.elapsed += dt
           const rise = Math.min(reel.elapsed / LIFT_MS, 1)
-          reel.lift = -LIFT_PX * easeOutCubic(rise)
+          reel.lift = -this.motion.liftPx * easeOutCubic(rise)
           if (reel.elapsed >= DIP_MS) {
             reel.phase = 'spinning'
             reel.elapsed = DIP_MS
@@ -267,11 +259,11 @@ export class ReelView {
           const since = reel.elapsed - DIP_MS
           const ramp = Math.min(since / RAMP_MS, 1)
           const slow = reel.anticipating && reel.elapsed >= reel.slowFrom
-          const speed = SPIN_SPEED * ramp * (slow ? ANTICIPATION_SPEED : 1)
+          const speed = this.motion.spinSpeed * ramp * (slow ? ANTICIPATION_SPEED : 1)
           reel.pos -= speed * dt
 
           // The lift falls away as the reel gets going.
-          reel.lift = -LIFT_PX * Math.max(0, 1 - since / DROP_MS)
+          reel.lift = -this.motion.liftPx * Math.max(0, 1 - since / DROP_MS)
 
           if (slow !== reel.glowing) {
             reel.glowing = slow
@@ -296,7 +288,7 @@ export class ReelView {
 
         case 'stopping': {
           reel.elapsed += dt
-          const t = Math.min(reel.elapsed / STOP_MS, 1)
+          const t = Math.min(reel.elapsed / this.motion.stopMs, 1)
           reel.pos = reel.stopFrom + (reel.stopTo - reel.stopFrom) * easeOutCubic(t)
           reel.lift = 0
           if (t >= 1) {
@@ -318,7 +310,7 @@ export class ReelView {
         case 'settling': {
           // The snap back from the overshoot.
           reel.elapsed += dt
-          const t = Math.min(reel.elapsed / SETTLE_MS, 1)
+          const t = Math.min(reel.elapsed / this.motion.settleMs, 1)
           reel.pos = reel.stopFrom + (reel.stopTo - reel.stopFrom) * easeOutCubic(t)
           if (t >= 1) {
             // stopTo is an exact strip index in theory, but it is arrived at
@@ -351,7 +343,7 @@ export class ReelView {
   }
 
   private overshootUnits(): number {
-    return this.cellHeight > 0 ? OVERSHOOT_PX / this.cellHeight : 0
+    return this.cellHeight > 0 ? this.motion.overshootPx / this.cellHeight : 0
   }
 
   private draw(reel: Reel): void {
@@ -377,7 +369,7 @@ export class ReelView {
       reel.shown[t] = symbol
 
       const tile = reel.tiles[t]!
-      const face = FACES[symbol]!
+      const face = this.faces[symbol]!
       tile.className = `tile tile--${FACE_CLASS[symbol]} tile--${face.kind}`
       tile.firstElementChild!.textContent = face.glyph
     }

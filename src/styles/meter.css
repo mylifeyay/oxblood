@@ -30,7 +30,7 @@
   padding: 7px 9px 9px;
   border: 1px solid var(--brass-line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--felt), #24111a);
+  background: linear-gradient(180deg, var(--felt), var(--panel-sink));
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(242, 232, 218, 0.05);
@@ -54,7 +54,7 @@
   overflow: hidden;
   padding: 7px 11px 8px;
   border-radius: var(--radius-sm);
-  background: radial-gradient(120% 150% at 50% 0%, #1e0d11, var(--well) 72%);
+  background: radial-gradient(120% 150% at 50% 0%, var(--well-lift), var(--well) 72%);
   box-shadow:
     inset 0 2px 7px rgba(0, 0, 0, 0.95),
     inset 0 0 0 1px rgba(0, 0, 0, 0.9),

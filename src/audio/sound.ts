@@ -1,4 +1,5 @@
 import type { TierKind } from '../game/ledger.ts'
+import type { SoundProfile } from '../ui/skins.ts'
 
 export type WinTier = 'small' | 'medium' | 'big'
 
@@ -18,6 +19,16 @@ export class Sound {
   private bus: GainNode | null = null
   private noise: AudioBuffer | null = null
   private muted = false
+  private voice: SoundProfile
+
+  constructor(voice: SoundProfile) {
+    this.voice = voice
+  }
+
+  /** Swaps the instrument without disturbing the context or the mute state. */
+  setVoice(voice: SoundProfile): void {
+    this.voice = voice
+  }
 
   get isMuted(): boolean {
     return this.muted
@@ -118,13 +129,15 @@ export class Sound {
 
   /** The clack of a reel coming to rest. Slightly lower for each reel. */
   reelStop(index: number): void {
-    this.clack(1500 - index * 130, 0.055, 0.16)
-    this.note(120 - index * 6, { length: 0.07, gain: 0.05, type: 'sine' })
+    const v = this.voice
+    this.clack(v.clackHz - index * (v.clackHz * 0.087), v.clackDecay, 0.16)
+    this.note(v.thumpHz - index * 6, { length: 0.07, gain: 0.05, type: 'sine' })
   }
 
   /** One tick per increment of the credit meter, rising as it climbs. */
   coinTick(progress: number): void {
-    this.note(760 + progress * 900, { length: 0.045, gain: 0.045, type: 'triangle' })
+    const v = this.voice
+    this.note(v.tickBase + progress * v.tickSpread, { length: 0.045, gain: 0.045, type: v.chime })
   }
 
   /** The tone that rises while an anticipating reel is still turning. */
@@ -132,11 +145,12 @@ export class Sound {
     const ctx = this.ctx
     if (!ctx || !this.bus) return SILENT_RISER
     const start = ctx.currentTime
+    const v = this.voice
 
     const osc = ctx.createOscillator()
-    osc.type = 'sawtooth'
-    osc.frequency.setValueAtTime(190, start)
-    osc.frequency.exponentialRampToValueAtTime(920, start + seconds)
+    osc.type = v.riserType
+    osc.frequency.setValueAtTime(v.riserFrom, start)
+    osc.frequency.exponentialRampToValueAtTime(v.riserTo, start + seconds)
 
     const lift = ctx.createBiquadFilter()
     lift.type = 'lowpass'
@@ -169,33 +183,22 @@ export class Sound {
 
   /** Win chimes, pitched and lengthened by tier. */
   win(tier: WinTier): void {
-    if (tier === 'small') {
-      this.note(1046, { length: 0.13, gain: 0.06 })
-      this.note(1318, { at: 0.075, length: 0.16, gain: 0.055 })
-      return
-    }
-    if (tier === 'medium') {
-      const run = [1046, 1318, 1568]
-      run.forEach((f, i) => this.note(f, { at: i * 0.09, length: 0.26, gain: 0.06 }))
-      return
-    }
-    const run = [784, 1046, 1318, 1568, 2093]
-    run.forEach((f, i) => this.note(f, { at: i * 0.1, length: 0.42, gain: 0.06 }))
-    this.note(392, { at: 0.1, length: 1.1, gain: 0.045, type: 'sine' })
+    const v = this.voice
+    const run = tier === 'small' ? v.smallRun : tier === 'medium' ? v.mediumRun : v.bigRun
+    const step = tier === 'small' ? 0.075 : tier === 'medium' ? 0.09 : 0.1
+    const length = tier === 'small' ? 0.15 : tier === 'medium' ? 0.26 : 0.42
+    run.forEach((f, i) => this.note(f, { at: i * step, length, gain: 0.06, type: v.chime }))
+    if (tier === 'big') this.note(run[0]! / 2, { at: 0.1, length: 1.1, gain: 0.045, type: 'sine' })
   }
 
   /** The fanfare as the iris opens, in the character of its tier. */
   bonus(kind: TierKind): void {
-    if (kind === 'mini') {
-      ;[523, 659, 784].forEach((f, i) => this.note(f, { at: i * 0.075, length: 0.28, gain: 0.06, type: 'square' }))
-      return
+    const { notes, type, length } = this.voice.bonusRuns[kind]
+    const step = length * 0.26
+    notes.forEach((f, i) => this.note(f, { at: i * step, length, gain: 0.055, type }))
+    if (kind === 'major') {
+      this.note(notes[0]! / 2, { at: 0, length: 1.8, gain: 0.05, type: 'sine' })
+      this.note(notes[1] ?? notes[0]!, { at: 0.55, length: 1.4, gain: 0.04, type: 'sine' })
     }
-    if (kind === 'minor') {
-      ;[659, 880, 1046, 1318].forEach((f, i) => this.note(f, { at: i * 0.085, length: 0.36, gain: 0.055 }))
-      return
-    }
-    ;[261, 392, 523, 659, 784, 1046].forEach((f, i) => this.note(f, { at: i * 0.11, length: 0.7, gain: 0.055 }))
-    this.note(130, { at: 0, length: 1.8, gain: 0.05, type: 'sine' })
-    this.note(196, { at: 0.55, length: 1.4, gain: 0.04, type: 'sine' })
   }
 }

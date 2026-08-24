@@ -1,0 +1,73 @@
+import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, SYMBOL_COUNT } from './symbols.ts'
+import type { GameConfig, ReelWeights } from './config.ts'
+
+const w = (l1: number, l2: number, l3: number, l4: number, m1: number, m2: number, wild: number, scatter: number): ReelWeights => {
+  const out = new Array<number>(SYMBOL_COUNT).fill(0)
+  out[L1] = l1
+  out[L2] = l2
+  out[L3] = l3
+  out[L4] = l4
+  out[M1] = m1
+  out[M2] = m2
+  out[WILD] = wild
+  out[SCATTER] = scatter
+  return out
+}
+
+/**
+ * Jade Parlour.
+ *
+ * Two hundred and forty-three ways rather than ten lines, which changes the
+ * texture completely: wins land on most spins and are usually small, and the
+ * good ones come from a symbol stacking several deep across the reels. Wilds
+ * substitute but never pay on their own, so a wild is only ever worth what it
+ * is standing in for.
+ *
+ * Bet is twenty-five a unit rather than ten. It is the room you graduate to.
+ *
+ * The bonus is untouched: three, four or five scatters still pay 5x, 20x and
+ * 100x the bet and still play a clip.
+ */
+export const JADE_CONFIG: GameConfig = {
+  evaluation: 'ways',
+  betPerLine: 1,
+  lineCount: 25,
+  totalBet: 25,
+  betLevels: [1, 2, 5, 10, 25],
+
+  // Fewer wilds and a flatter symbol spread than Oxblood: with 243 ways, a
+  // generous reel makes every spin a win and nothing feels like anything.
+  reels: [
+    //          L1  L2  L3  L4  M1  M2   W  SC
+    { weights: w(40, 38, 34, 32, 22, 16, 8, 10), scatterPairs: 3 },
+    { weights: w(40, 38, 34, 32, 22, 16, 8, 10), scatterPairs: 3 },
+    { weights: w(40, 38, 34, 32, 22, 16, 8, 10), scatterPairs: 3 },
+    { weights: w(44, 40, 36, 34, 22, 16, 0, 8), scatterPairs: 1 },
+    { weights: w(44, 42, 38, 34, 22, 12, 0, 8), scatterPairs: 1 },
+  ],
+
+  // Tuned by scripts/tune-jade.ts. Ways wins are far more frequent than line
+  // wins, so the per-hit values are much smaller than Oxblood's.
+  paytable: (() => {
+    const t: [number, number, number][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0] as [number, number, number])
+    t[L1] = [1, 5, 15]
+    t[L2] = [1, 5, 15]
+    t[L3] = [2, 10, 20]
+    t[L4] = [2, 10, 20]
+    t[M1] = [5, 15, 60]
+    t[M2] = [10, 25, 125]
+    t[WILD] = [0, 0, 0] // substitutes only
+    t[SCATTER] = [0, 0, 0]
+    return t
+  })(),
+
+  tiers: [
+    { name: 'mini', scatters: 3, payMultiple: 5 },
+    { name: 'minor', scatters: 4, payMultiple: 20 },
+    { name: 'major', scatters: 5, payMultiple: 100 },
+  ],
+
+  pitySpins: 40,
+  cooldownSpins: 4,
+  stripSeed: 0x3ade1,
+}

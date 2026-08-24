@@ -14,7 +14,7 @@
   padding: 14px 14px;
   border: 1px solid var(--brass-line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #3a1c28, var(--felt));
+  background: linear-gradient(180deg, var(--panel-lift), var(--felt));
   text-align: left;
 }
 
@@ -349,6 +349,12 @@
 }
 
 /* ---- How it pays ---- */
+
+.help-stake {
+  font-family: var(--font-led);
+  font-size: 15px;
+  color: var(--amber);
+}
 
 .help-heading {
   margin: 18px 0 8px;
@@ -728,7 +734,7 @@
   border: 1px solid var(--brass-line);
   border-left: 3px solid var(--accent, var(--brass));
   border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(58, 28, 40, 0.7), var(--felt));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel-lift) 70%, transparent), var(--felt));
 }
 
 .machine.is-active {

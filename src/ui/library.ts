@@ -101,12 +101,7 @@ export function openLibrary(onClosed?: () => void): void {
     })
 
     if (total > WARN_BYTES) {
-      body.append(
-        para(
-          `The library is past ${formatBytes(WARN_BYTES)}. Safari is more likely to evict a library this large, so consider deleting clips you have stopped enjoying.`,
-          'lib-warn',
-        ),
-      )
+      body.append(para(`Past ${formatBytes(WARN_BYTES)}. Consider deleting clips you have stopped enjoying.`, 'lib-warn'))
     }
   }
 
@@ -144,7 +139,7 @@ export function openLibrary(onClosed?: () => void): void {
   function grid(body: HTMLElement): void {
     if (videos.length === 0) {
       body.append(
-        para('No clips yet. Import a few, and a bonus win will play ten seconds from one of them.', 'lib-empty'),
+        para('No clips yet.', 'lib-empty'),
       )
       return
     }
@@ -192,7 +187,7 @@ export function openLibrary(onClosed?: () => void): void {
         await cycleTier(video.id)
         await refresh()
       })
-      tierChip.title = `${TIER_LABEL[video.tier]} clips play on a ${TIER_PLAYS[video.tier]} win. Tap to change.`
+      tierChip.title = `${TIER_LABEL[video.tier]} · ${TIER_PLAYS[video.tier]}`
 
       card.append(thumb, name, meta, tierChip)
 

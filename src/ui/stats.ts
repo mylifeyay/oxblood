@@ -1,6 +1,6 @@
 import { MAX_ENTRIES, type Book } from '../game/book.ts'
 import { balanceOf, netOf, rtpOf, TIER_KINDS, type Totals } from '../game/ledger.ts'
-import { CONFIG } from '../game/config.ts'
+import type { GameConfig } from '../game/config.ts'
 import { openSheet } from './sheet.ts'
 
 export const DESIGNED_RTP = 0.94
@@ -102,28 +102,59 @@ function table(rows: Row[]): HTMLElement {
   return el
 }
 
-function notes(book: Book): HTMLElement {
+/**
+ * The one place the game explains itself.
+ *
+ * Every other screen was stripped of mechanics prose; this is where it lives,
+ * because someone opening the statistics has asked how the thing works.
+ */
+function notes(book: Book, config: GameConfig): HTMLElement {
   const lifetime = book.lifetime
   const observed = rtpOf(lifetime)
   const wrap = document.createElement('div')
   wrap.className = 'stat-notes'
 
-  const designed = document.createElement('p')
-  designed.textContent =
+  const section = (title: string, text: string): void => {
+    const h = document.createElement('h3')
+    h.className = 'stat-notes__head'
+    h.textContent = title
+    const p = document.createElement('p')
+    p.textContent = text
+    wrap.append(h, p)
+  }
+
+  section(
+    'Return',
     observed === null
-      ? `Designed RTP is ${(DESIGNED_RTP * 100).toFixed(0)}%. Spin to start measuring it.`
-      : `Designed RTP is ${(DESIGNED_RTP * 100).toFixed(0)}%, and this has observed ${percent(observed)} over ${count(lifetime.spins)} spins. It takes a few thousand to settle, because a Major pays 1000 and lands about once in 800.`
-  wrap.append(designed)
+      ? `Designed to pay back ${(DESIGNED_RTP * 100).toFixed(0)}% of everything wagered, verified over fifty million simulated spins. Spin to start measuring it.`
+      : `Designed to pay back ${(DESIGNED_RTP * 100).toFixed(0)}%, verified over fifty million simulated spins. This machine has returned ${percent(observed)} across ${count(lifetime.spins)} spins. Expect it to wander for a few thousand spins before it settles — a Major is a hundred times the bet and lands about once in eight hundred.`,
+  )
+
+  section(
+    'Where the money is',
+    'Roughly half the return comes from ordinary wins and half from the three bonuses. The Mini is deliberately small: it lands about once in twenty-five spins, so anything generous would break the economy. The video is the prize at that tier and the credits are garnish. The Major is where money actually lands.',
+  )
+
+  section(
+    'The two rules that bend the odds',
+    `No bonus may follow another within ${config.cooldownSpins} spins — two clips back to back cheapens both. And if ${config.pitySpins} spins pass without a Mini, the next spin is forced to land one, so a drought can never run longer than ${config.pitySpins + config.cooldownSpins} spins. Both work by re-rolling the whole spin rather than nudging a reel, so every screen is a genuine draw.`,
+  )
+
+  section(
+    'Honest reels',
+    'The reels are decided before they start turning. The slowdown when a scatter is close only ever draws out what has already landed — near misses are never manufactured.',
+  )
+
+  section(
+    'This machine',
+    config.evaluation === 'ways'
+      ? `Two hundred and forty-three ways: a symbol pays on adjacent reels from the first, multiplied by how many places it lands on each. Wins come often and most are small. Bet is ${config.totalBet} at the base level.`
+      : `${config.lineCount} fixed lines, paying left to right from reel one. Bet is ${config.totalBet} at the base level, ${config.betPerLine} a line.`,
+  )
 
   const kept = document.createElement('p')
-  kept.textContent = `The ledger keeps its last ${count(MAX_ENTRIES)} entries in full and folds anything older into a rolling total, so it never grows without bound. It is holding ${count(book.retained)}.`
+  kept.textContent = `The ledger keeps its last ${count(MAX_ENTRIES)} entries in full and folds anything older into a rolling total. It is holding ${count(book.retained)}.`
   wrap.append(kept)
-
-  const bet = document.createElement('p')
-  bet.textContent = `Bet runs from ${CONFIG.betLevels[0]! * CONFIG.lineCount} to ${
-    CONFIG.betLevels[CONFIG.betLevels.length - 1]! * CONFIG.lineCount
-  } a spin, across ${CONFIG.lineCount} lines. Every payout scales with it, so these figures mix bets without distorting the return.`
-  wrap.append(bet)
 
   if (book.ephemeral) {
     const warn = document.createElement('p')
@@ -136,13 +167,13 @@ function notes(book: Book): HTMLElement {
 }
 
 /** The sheet is modal, so nothing moves behind it — this renders once. */
-export function openStats(book: Book, onReset: () => void): void {
+export function openStats(book: Book, config: GameConfig, onReset: () => void): void {
   const sheet = openSheet('Stats', (body) => {
     let confirming = false
 
     const render = (): void => {
       body.replaceChildren()
-      body.append(hero('Balance', String(balanceOf(book.lifetime))), table(rowsFor(book.session, book.lifetime)), notes(book))
+      body.append(hero('Balance', String(balanceOf(book.lifetime))), table(rowsFor(book.session, book.lifetime)), notes(book, config))
 
       const box = document.createElement('div')
       box.className = 'reset-box'

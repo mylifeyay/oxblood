@@ -80,9 +80,22 @@ To build a subpath copy locally:
 VITE_BASE=/your-repo-name/ npm run build
 ```
 
+## Machines
+
+Two cabinets are built. Oxblood pays ten fixed lines; Jade Parlour pays 243
+ways, lands a win on most spins, and costs more a spin. Both reward the same
+three bonus tiers with a clip from your library, and both return 94%.
+
+A machine carries its own payout config (`src/game/`), skin, palette, sound and
+reel timings (`src/ui/skins.ts`, `src/styles/themes.css`). Adding one is data
+plus a theme block. Unlocks are driven by lifetime wagered or lifetime spins —
+the thresholds are deliberately not shown in the interface.
+
 ## Things worth knowing
 
-- **Stats are hidden.** Tap the marquee three times to open them.
+- **Stats are hidden.** Tap the marquee three times to open them. Stats is also
+  the only screen that explains how the game is designed — everywhere else was
+  stripped of mechanics prose.
 - **Tap the bet meter** to cycle 10 / 20 / 50 / 100 / 250 a spin. Bonus tiers pay
   a multiple of the bet, so the return is identical at every level.
 - Bonus clip length is per tier: 10 seconds for a Mini, 15 for a Minor, 30 for a

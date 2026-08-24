@@ -1,0 +1,161 @@
+/*
+ * Cabinet themes. The palette tokens are redefined per machine, so every panel,
+ * meter, glow and chip follows without a single component knowing about it.
+ */
+
+[data-machine='jade'] {
+  --cabinet: #0b1714;
+  --felt: #122a24;
+  --brass: #d8c27a;
+  /* The readouts glow jade rather than amber — the loudest single difference. */
+  --amber: #7fe3c0;
+  --ember: #e8785f;
+  --jade: #3fa88c;
+  --ivory: #eaf2ec;
+
+  --cabinet-deep: #060f0d;
+  --cabinet-lift: #14261f;
+  --well: #04100c;
+  --brass-line: rgba(216, 194, 122, 0.3);
+  --brass-faint: rgba(216, 194, 122, 0.13);
+  --ivory-dim: rgba(234, 242, 236, 0.58);
+  --ivory-faint: rgba(234, 242, 236, 0.3);
+  --amber-glow: rgba(127, 227, 192, 0.4);
+  --well-lift: #0a1f19;
+  --panel-lift: #1b3c32;
+  --panel-sink: #0d1f1a;
+}
+
+/* The lamp spill above the marquee and the LED bloom are amber-specific. */
+[data-machine='jade'] .cabinet {
+  background:
+    radial-gradient(130% 55% at 50% -12%, rgba(127, 227, 192, 0.1), transparent 62%),
+    linear-gradient(180deg, var(--cabinet-lift) 0%, var(--cabinet) 40%, var(--cabinet-deep) 100%);
+}
+
+[data-machine='jade'] .led__value {
+  text-shadow:
+    0 0 3px rgba(127, 227, 192, 0.95),
+    0 0 12px rgba(127, 227, 192, 0.5),
+    0 0 30px rgba(127, 227, 192, 0.22);
+}
+
+[data-machine='jade'] .led__ghost {
+  color: rgba(127, 227, 192, 0.06);
+}
+
+[data-machine='jade'] .btn--spin {
+  background: linear-gradient(180deg, #8fe8c8 0%, #4fb894 46%, #2c7d63 100%);
+  border-color: var(--brass);
+  box-shadow:
+    0 2px 0 #1c4a3b,
+    0 0 22px rgba(127, 227, 192, 0.3),
+    inset 0 1px 0 rgba(230, 255, 245, 0.55);
+}
+
+[data-machine='jade'] .reel.is-anticipating {
+  animation-name: anticipate-jade;
+}
+
+@keyframes anticipate-jade {
+  from {
+    box-shadow:
+      inset 0 0 0 1px rgba(127, 227, 192, 0.45),
+      0 0 10px rgba(127, 227, 192, 0.22);
+  }
+  to {
+    box-shadow:
+      inset 0 0 0 2px var(--amber),
+      0 0 28px rgba(127, 227, 192, 0.62);
+  }
+}
+
+/* Jade's tiles are rounder and quieter than Oxblood's lacquered plates. */
+[data-machine='jade'] .tile::before {
+  background: linear-gradient(180deg, rgba(234, 242, 236, 0.06), rgba(0, 0, 0, 0.3));
+}
+
+[data-machine='jade'] .tile--m1 .tile__face {
+  color: #f2d98c;
+  text-shadow: 0 0 14px rgba(242, 217, 140, 0.5);
+}
+
+[data-machine='jade'] .tile--m2 .tile__face {
+  color: var(--amber);
+  text-shadow: 0 0 14px rgba(127, 227, 192, 0.5);
+}
+
+[data-machine='jade'] .tile--wild::before {
+  background: linear-gradient(180deg, #1e5a49, #0c2b23);
+  box-shadow: inset 0 0 0 1px var(--amber);
+}
+
+[data-machine='jade'] .tile--wild .tile__face {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--amber);
+}
+
+[data-machine='jade'] .tile--l1 .tile__face {
+  color: var(--ivory);
+}
+[data-machine='jade'] .tile--l2 .tile__face {
+  color: #7fb8e3;
+}
+[data-machine='jade'] .tile--l3 .tile__face {
+  color: #d8c27a;
+}
+[data-machine='jade'] .tile--l4 .tile__face {
+  color: #9a8fd8;
+}
+
+/* ---- Unlock announcement ---- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  z-index: 8;
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 12px 22px;
+  border: 1px solid var(--accent, var(--brass));
+  border-radius: var(--radius);
+  background: rgba(10, 6, 8, 0.94);
+  box-shadow: 0 0 34px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, 0);
+  animation: toast-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.toast.is-out {
+  opacity: 0;
+  transform: translate(-50%, -10px);
+}
+
+.toast__label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+}
+
+.toast__name {
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent, var(--brass));
+  text-shadow: 0 0 24px currentcolor;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+  }
+}

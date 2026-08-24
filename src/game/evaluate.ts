@@ -1,4 +1,4 @@
-import { SCATTER, WILD } from './symbols.ts'
+import { SCATTER, SYMBOL_COUNT, WILD } from './symbols.ts'
 import { LINE_COUNT, PAYLINES, REELS, ROWS } from './paylines.ts'
 import type { GameConfig } from './config.ts'
 
@@ -84,6 +84,71 @@ export function evaluateLines(grid: Int8Array, config: GameConfig, betPerLine: n
     }
   }
   return { total: total * betPerLine, wins }
+}
+
+/**
+ * Ways scoring.
+ *
+ * A symbol pays when it lands on consecutive reels starting at reel 1, and the
+ * win is multiplied by how many places it appears on each of those reels. Five
+ * reels of three rows is 3^5 = 243 ways. Every symbol is scored independently,
+ * so one screen can pay several times over.
+ *
+ * WILD substitutes here but has no payout of its own — otherwise a screen full
+ * of wilds would pay once for every symbol it stood in for and once again as
+ * itself.
+ */
+function scanWays(grid: Int8Array, symbol: number, paytable: GameConfig['paytable']): { pay: number; reels: number; ways: number } {
+  let ways = 1
+  let reels = 0
+
+  for (let reel = 0; reel < REELS; reel++) {
+    let here = 0
+    for (let row = 0; row < ROWS; row++) {
+      const cell = grid[reel * ROWS + row]!
+      if (cell === symbol || cell === WILD) here++
+    }
+    if (here === 0) break
+    ways *= here
+    reels++
+  }
+
+  if (reels < 3) return { pay: 0, reels, ways: 0 }
+  return { pay: paytable[symbol]![reels - 3]! * ways, reels, ways }
+}
+
+/** Total ways payout in credits. Allocation free — the simulator path. */
+export function evaluateWaysTotal(grid: Int8Array, config: GameConfig, betPerUnit: number): number {
+  let total = 0
+  for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
+    if (symbol === WILD || symbol === SCATTER) continue
+    total += scanWays(grid, symbol, config.paytable).pay
+  }
+  return total * betPerUnit
+}
+
+/** Same scoring, with the detail the reel display needs. */
+export function evaluateWays(grid: Int8Array, config: GameConfig, betPerUnit: number): { total: number; wins: LineWin[] } {
+  const wins: LineWin[] = []
+  let total = 0
+  for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
+    if (symbol === WILD || symbol === SCATTER) continue
+    const { pay, reels } = scanWays(grid, symbol, config.paytable)
+    if (pay <= 0) continue
+    total += pay
+    // `line` carries the symbol for ways wins; there are no fixed lines.
+    wins.push({ line: symbol, symbol, count: reels, pay: pay * betPerUnit })
+  }
+  return { total: total * betPerUnit, wins }
+}
+
+/** Scores a screen whichever way this machine counts. */
+export function evaluateTotal(grid: Int8Array, config: GameConfig, bet: number): number {
+  return config.evaluation === 'ways' ? evaluateWaysTotal(grid, config, bet) : evaluateLineTotal(grid, config, bet)
+}
+
+export function evaluateDetail(grid: Int8Array, config: GameConfig, bet: number): { total: number; wins: LineWin[] } {
+  return config.evaluation === 'ways' ? evaluateWays(grid, config, bet) : evaluateLines(grid, config, bet)
 }
 
 export function countScatters(grid: Int8Array): number {

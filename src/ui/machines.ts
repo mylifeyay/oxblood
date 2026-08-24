@@ -1,72 +1,76 @@
 import type { Book } from '../game/book.ts'
-import { isLocked, isPlayable, MACHINES, type MachineDef } from '../game/machines.ts'
+import { isEarned, isPlayable, MACHINES, unlockProgress, type MachineDef } from '../game/machines.ts'
+import { saveSetting } from '../game/settings.ts'
 import { openSheet } from './sheet.ts'
 
-const count = (n: number): string => n.toLocaleString('en-GB')
-
-function statusOf(machine: MachineDef, spins: number, activeId: string): string {
-  if (machine.id === activeId) return 'Playing now'
-  if (isPlayable(machine, spins)) return 'Ready'
-  if (isLocked(machine, spins)) return `${count(spins)} of ${count(machine.unlockAtSpins)} spins`
-  return `Not built yet · unlocks at ${count(machine.unlockAtSpins)} spins`
-}
-
 /**
- * The cabinet list. One machine is built; the others are here so the shape of
- * the thing is visible and so adding one later is data, not a redesign.
+ * The cabinet list.
+ *
+ * The bar fills and nothing explains why. What earns a machine is deliberately
+ * not stated: finding out is part of it.
  */
 export function openMachines(book: Book, activeId: string): void {
   openSheet('Machines', (body) => {
-    const spins = book.lifetime.spins
-
-    const lead = document.createElement('p')
-    lead.className = 'lib-storage'
-    lead.textContent = 'More cabinets open up the more you play. Your clips and your balance follow you between them.'
-    body.append(lead)
+    const lifetime = book.lifetime
 
     const list = document.createElement('div')
     list.className = 'machine-list'
 
     for (const machine of MACHINES) {
-      const playable = isPlayable(machine, spins)
-      const row = document.createElement('div')
+      const playable = isPlayable(machine, lifetime)
+      const earned = isEarned(machine, lifetime)
+      const active = machine.id === activeId
+      const built = machine.config !== null
+
+      const row = document.createElement(playable && !active ? 'button' : 'div')
       row.className = 'machine'
-      if (machine.id === activeId) row.classList.add('is-active')
+      if (active) row.classList.add('is-active')
       if (!playable) row.classList.add('is-locked')
       row.style.setProperty('--accent', machine.accent)
+      if (row instanceof HTMLButtonElement) row.type = 'button'
 
       const name = document.createElement('div')
       name.className = 'machine__name'
-      name.textContent = machine.name
+      name.textContent = earned || active ? machine.name : '???'
 
       const tagline = document.createElement('div')
       tagline.className = 'machine__tagline'
-      tagline.textContent = machine.tagline
+      tagline.textContent = earned || active ? machine.tagline : 'Sealed'
 
       const status = document.createElement('div')
       status.className = 'machine__status'
-      status.textContent = statusOf(machine, spins, activeId)
+      status.textContent = active ? 'Playing now' : playable ? 'Tap to play' : earned && !built ? 'Coming soon' : 'Locked'
 
       row.append(name, tagline, status)
 
-      if (machine.config === null && machine.unlockAtSpins > 0) {
+      if (!active) {
         const bar = document.createElement('div')
         bar.className = 'machine__bar'
         const fill = document.createElement('div')
         fill.className = 'machine__fill'
-        fill.style.width = `${Math.min(100, Math.round((spins / machine.unlockAtSpins) * 100))}%`
+        fill.style.width = `${Math.round(unlockProgress(machine, lifetime) * 100)}%`
         bar.append(fill)
         row.append(bar)
+      }
+
+      if (playable && !active) {
+        row.addEventListener('click', async () => {
+          status.textContent = 'Opening'
+          await saveSetting('machine', machine.id)
+          // A cabinet swap changes the reels, the skin and the sound. Coming up
+          // fresh is cleaner than rebuilding every part of a live machine.
+          window.location.reload()
+        })
       }
 
       list.append(row)
     }
 
     body.append(list)
-
-    const note = document.createElement('p')
-    note.className = 'help-note'
-    note.textContent = 'Only Oxblood is built so far. The others show what the shelf will look like.'
-    body.append(note)
   })
+}
+
+/** Machines that have just become playable, for the unlock announcement. */
+export function newlyPlayable(before: Book['lifetime'], after: Book['lifetime']): MachineDef[] {
+  return MACHINES.filter((m) => m.config !== null && !isEarned(m, before) && isEarned(m, after))
 }
