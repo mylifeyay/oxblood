@@ -38,6 +38,8 @@ export type Evaluation = 'lines' | 'ways'
 
 export interface GameConfig {
   readonly evaluation: Evaluation
+  /** Visible rows per reel. Reel count comes from `reels.length`. */
+  readonly rows: number
   /** Bet per line at the default level. */
   readonly betPerLine: number
   /** Paylines when scoring by lines; bet units when scoring by ways. */
@@ -47,8 +49,11 @@ export interface GameConfig {
   /** Selectable bet-per-line values, cycled by tapping the bet meter. */
   readonly betLevels: readonly number[]
   readonly reels: readonly ReelSpec[]
-  /** Payout per symbol for a run of 3, 4 and 5, in multiples of bet-per-line. */
-  readonly paytable: readonly (readonly [number, number, number])[]
+  /**
+   * Payout per symbol by run length, indexed from three of a kind. A five-reel
+   * machine has three entries; a six-reel machine has four.
+   */
+  readonly paytable: readonly (readonly number[])[]
   readonly tiers: readonly BonusTier[]
   /** Spins without a Mini before the next spin is forced to land one. */
   readonly pitySpins: number
@@ -56,6 +61,24 @@ export interface GameConfig {
   readonly cooldownSpins: number
   /** Fixed seed so the strips are identical in the game and the simulator. */
   readonly stripSeed: number
+  /** A pot that grows on every wager. Absent on machines without one. */
+  readonly progressive?: Progressive
+}
+
+/**
+ * A jackpot fed by play rather than by the paytable.
+ *
+ * Every wager puts `contribution` of itself into the pot, and the pot is handed
+ * over whole when `triggerScatters` land. Because the money in is the money out,
+ * a progressive is close to self-funding: the only extra it costs the machine is
+ * the seed it restarts from, which the base paytable has to make room for.
+ */
+export interface Progressive {
+  /** Fraction of every wager that feeds the pot. */
+  readonly contribution: number
+  /** What the pot restarts at, as a multiple of the base total bet. */
+  readonly seedMultiple: number
+  readonly triggerScatters: number
 }
 
 const w = (l1: number, l2: number, l3: number, l4: number, m1: number, m2: number, wild: number, scatter: number): ReelWeights => {
@@ -73,6 +96,7 @@ const w = (l1: number, l2: number, l3: number, l4: number, m1: number, m2: numbe
 
 export const CONFIG: GameConfig = {
   evaluation: 'lines',
+  rows: 3,
   betPerLine: 1,
   lineCount: 10,
   totalBet: 10,
@@ -97,7 +121,7 @@ export const CONFIG: GameConfig = {
   // that needs lines to supply ~48%, so it could not reach its own target.
   // Whole numbers only: the credit meter ticks in whole credits.
   paytable: (() => {
-    const t: [number, number, number][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0] as [number, number, number])
+    const t: number[][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0])
     t[L1] = [3, 12, 70]
     t[L2] = [3, 12, 70]
     t[L3] = [3, 12, 70]
@@ -124,3 +148,6 @@ export const CONFIG: GameConfig = {
 
 /** What a tier pays at a given total bet. */
 export const tierPay = (tier: BonusTier, totalBet: number): number => tier.payMultiple * totalBet
+
+/** Cells on screen. */
+export const gridSize = (config: GameConfig): number => config.reels.length * config.rows

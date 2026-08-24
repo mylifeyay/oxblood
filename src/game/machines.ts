@@ -1,5 +1,6 @@
 import { CONFIG, type GameConfig } from './config.ts'
 import { JADE_CONFIG } from './jade.ts'
+import { EMBER_CONFIG } from './ember.ts'
 import type { Totals } from './ledger.ts'
 
 /** What a cabinet is earned with. Spend and time, the way a casino counts you. */
@@ -52,11 +53,11 @@ export const MACHINES: readonly MachineDef[] = [
   {
     id: 'ember-room',
     name: 'Ember Room',
-    tagline: 'Six reels, and a jackpot that never resets',
+    tagline: 'Six reels, four rows, and a pot that keeps climbing',
     theme: 'ember',
-    accent: '#E2483C',
+    accent: '#FF7A45',
     unlock: { metric: 'spins', at: 10_000 },
-    config: null,
+    config: EMBER_CONFIG,
   },
 ]
 

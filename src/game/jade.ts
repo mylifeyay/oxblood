@@ -30,6 +30,7 @@ const w = (l1: number, l2: number, l3: number, l4: number, m1: number, m2: numbe
  */
 export const JADE_CONFIG: GameConfig = {
   evaluation: 'ways',
+  rows: 3,
   betPerLine: 1,
   lineCount: 25,
   totalBet: 25,
@@ -49,7 +50,7 @@ export const JADE_CONFIG: GameConfig = {
   // Tuned by scripts/tune-jade.ts. Ways wins are far more frequent than line
   // wins, so the per-hit values are much smaller than Oxblood's.
   paytable: (() => {
-    const t: [number, number, number][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0] as [number, number, number])
+    const t: number[][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0])
     t[L1] = [1, 5, 15]
     t[L2] = [1, 5, 15]
     t[L3] = [2, 10, 20]

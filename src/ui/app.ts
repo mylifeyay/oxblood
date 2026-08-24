@@ -1,6 +1,6 @@
 import { tierPay } from '../game/config.ts'
 import { SlotMachine, type SpinSnapshot } from '../game/machine.ts'
-import { PAYLINE_ROWS, REELS, ROWS } from '../game/paylines.ts'
+import { PAYLINE_ROWS } from '../game/paylines.ts'
 import { SCATTER, WILD } from '../game/symbols.ts'
 import { Book } from '../game/book.ts'
 import { cloneTotals, type Totals } from '../game/ledger.ts'
@@ -38,6 +38,8 @@ export async function startGame(): Promise<void> {
   const helpButton = need<HTMLButtonElement>('help')
   const title = need('marquee-title')
   const subtitle = need('marquee-sub')
+  const jackpotPanel = need('jackpot')
+  const jackpotValue = need('jackpot-value')
   const tierPayEls = new Map((['mini', 'minor', 'major'] as const).map((name) => [name, need(`tier-pay-${name}`)]))
 
   const cabinet = need('cabinet')
@@ -53,7 +55,7 @@ export async function startGame(): Promise<void> {
   subtitle.textContent = active.tagline
 
   const machine = new SlotMachine(CONFIG)
-  const view = new ReelView(reelsHost, machine.strips, skin.faces, skin.motion)
+  const view = new ReelView(reelsHost, machine.strips, skin.faces, skin.motion, CONFIG.rows)
   const sound = new Sound(skin.sound)
   const bonus = new BonusStage(Math.random, sound)
   const particles = new Particles(frame)
@@ -69,6 +71,18 @@ export async function startGame(): Promise<void> {
   // The bet the player last chose, if it is still one we offer.
   const savedBet = await loadPref('betPerLine', CONFIG.betPerLine)
   machine.betPerLine = CONFIG.betLevels.includes(savedBet) ? savedBet : CONFIG.betPerLine
+
+  // The pot survives closing the app. It is per machine, and it only ever
+  // restarts when somebody wins it.
+  const potKey = `jackpot:${active.id}`
+  if (CONFIG.progressive) {
+    machine.restoreJackpot(await loadPref(potKey, machine.seedJackpot))
+    jackpotPanel.hidden = false
+  }
+  const renderJackpot = (): void => {
+    if (!CONFIG.progressive) return
+    jackpotValue.textContent = String(Math.round(machine.jackpot))
+  }
 
 
   // The clack as each reel lands, and the riser while one hangs on.
@@ -95,6 +109,7 @@ export async function startGame(): Promise<void> {
   const renderMeters = (): void => {
     credits.set(book.balance)
     renderBet()
+    renderJackpot()
   }
 
   /** The bet meter and the tier signage above the reels move together. */
@@ -124,8 +139,10 @@ export async function startGame(): Promise<void> {
   const showWins = (snap: SpinSnapshot): void => {
     clearWins()
     const seen = new Set<number>()
+    const rows = CONFIG.rows
+    const reelCount = CONFIG.reels.length
     const mark = (reel: number, row: number, scatter: boolean): void => {
-      const key = reel * ROWS + row
+      const key = reel * rows + row
       if (seen.has(key)) return
       seen.add(key)
       markWin(reel, row, scatter)
@@ -136,21 +153,21 @@ export async function startGame(): Promise<void> {
         // A ways win has no line to trace: every place the symbol landed on the
         // contributing reels is part of it.
         for (let reel = 0; reel < win.count; reel++) {
-          for (let row = 0; row < ROWS; row++) {
-            const cell = snap.grid[reel * ROWS + row]
+          for (let row = 0; row < rows; row++) {
+            const cell = snap.grid[reel * rows + row]
             if (cell === win.symbol || cell === WILD) mark(reel, row, false)
           }
         }
         continue
       }
-      const rows = PAYLINE_ROWS[win.line]!
-      for (let reel = 0; reel < win.count; reel++) mark(reel, rows[reel]!, false)
+      const lineRows = PAYLINE_ROWS[win.line]!
+      for (let reel = 0; reel < win.count; reel++) mark(reel, lineRows[reel]!, false)
     }
 
     if (snap.tier) {
-      for (let reel = 0; reel < REELS; reel++) {
-        for (let row = 0; row < ROWS; row++) {
-          if (snap.grid[reel * ROWS + row] === SCATTER) mark(reel, row, true)
+      for (let reel = 0; reel < reelCount; reel++) {
+        for (let row = 0; row < rows; row++) {
+          if (snap.grid[reel * rows + row] === SCATTER) mark(reel, row, true)
         }
       }
     }
@@ -196,6 +213,9 @@ export async function startGame(): Promise<void> {
     // the money actually came from.
     if (snap.linePayout > 0) book.append({ t: 'win', amount: snap.linePayout, at, kind: 'line' })
     if (snap.tier && snap.bonusPayout > 0) book.append({ t: 'win', amount: snap.bonusPayout, at, kind: snap.tier.name })
+    // The pot counts as a Major win in the books; it only ever lands with one.
+    if (snap.jackpotPayout > 0) book.append({ t: 'win', amount: snap.jackpotPayout, at, kind: 'major' })
+    if (CONFIG.progressive) void saveSetting(potKey, machine.jackpot)
 
     showWins(snap)
     setReadout(describe(snap))
@@ -206,7 +226,19 @@ export async function startGame(): Promise<void> {
     try {
       // A bonus has its own reveal; the line win is celebrated on its own only
       // when there is no clip taking over the screen.
-      if (snap.tier) {
+      if (snap.jackpotPayout > 0) {
+        // The pot goes first: it is the largest thing that can happen here.
+        shake()
+        burstFromWins()
+        const climb = Math.min(9000, 2600 + Math.sqrt(snap.jackpotPayout) * 90)
+        await Promise.all([
+          bigWin.show(snap.jackpotPayout, climb, (p) => sound.coinTick(p), 'Jackpot'),
+          credits.rollTo(book.balance, climb),
+        ])
+        await new Promise((r) => setTimeout(r, 900))
+        await bigWin.hide()
+        if (snap.tier) await bonus.reveal(snap.tier.name, snap.bonusPayout)
+      } else if (snap.tier) {
         await bonus.reveal(snap.tier.name, snap.bonusPayout)
         await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
       } else if (snap.totalPayout > 0) {
@@ -331,6 +363,7 @@ export async function startGame(): Promise<void> {
     book.append({ t: 'wager', amount: machine.totalBet, at: Date.now() })
     lastResult = null
     credits.set(book.balance)
+    renderJackpot()
     particles.clear()
     clearWins()
     setReadout('Good luck')

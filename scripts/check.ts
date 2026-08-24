@@ -4,6 +4,7 @@
  */
 import { CONFIG } from '../src/game/config.ts'
 import { JADE_CONFIG } from '../src/game/jade.ts'
+import { EMBER_CONFIG } from '../src/game/ember.ts'
 import { evaluateWaysTotal } from '../src/game/evaluate.ts'
 import { SlotMachine } from '../src/game/machine.ts'
 import { L1, L2, L3, L4, M1, M2, WILD, SCATTER } from '../src/game/symbols.ts'
@@ -172,6 +173,56 @@ console.log('\nWays scoring (Jade Parlour)\n')
   check('a screen of wilds does not pay as wild', JADE_CONFIG.paytable[WILD]!.every((p) => p === 0), true)
 
   check('the scatter never pays a way', total(columns([only(SCATTER), only(SCATTER), only(SCATTER), none(M2), none(M2)])), 0)
+}
+
+console.log('\nEmber Room: six reels and a pot\n')
+
+{
+  check('the board is six by four', [EMBER_CONFIG.reels.length, EMBER_CONFIG.rows], [6, 4])
+  check('the paytable reaches six of a kind', EMBER_CONFIG.paytable[M2]!.length, 4)
+
+  // Six full reels of one symbol: 4^6 = 4096 ways, the whole board.
+  const grid = new Int8Array(6 * 4).fill(M2)
+  check(
+    'a full board of one symbol is 4096 ways',
+    evaluateWaysTotal(grid, EMBER_CONFIG, EMBER_CONFIG.betPerLine),
+    EMBER_CONFIG.paytable[M2]![3]! * 4096 * EMBER_CONFIG.betPerLine,
+  )
+
+  const machine = new SlotMachine(EMBER_CONFIG, 5)
+  const contribution = EMBER_CONFIG.progressive!.contribution * machine.totalBet
+  check('the pot starts at its seed', machine.jackpot, machine.seedJackpot)
+
+  // Every wager feeds it, and it is handed over whole when six scatters land.
+  let paidOut = 0
+  let hits = 0
+  let previous = machine.jackpot
+  let growthWrong = 0
+  const spins = 400_000
+  for (let i = 0; i < spins; i++) {
+    machine.next()
+    if (machine.jackpotPayout > 0) {
+      paidOut += machine.jackpotPayout
+      hits++
+      if (machine.jackpot !== machine.seedJackpot) growthWrong++
+    } else if (Math.abs(machine.jackpot - (previous + contribution)) > 1e-6) {
+      growthWrong++
+    }
+    previous = machine.jackpot
+  }
+  check('the pot grows by its contribution on every spin and reseeds when won', growthWrong, 0)
+
+  // Contributions in must come back out, give or take the seed it restarts from.
+  const wagered = spins * machine.totalBet
+  const takenIn = wagered * EMBER_CONFIG.progressive!.contribution
+  const seedGiven = hits * machine.seedJackpot
+  const drift = Math.abs(paidOut - (takenIn + seedGiven)) / wagered
+  const selfFunding = drift < 0.01
+  if (!selfFunding) failures++
+  console.log(
+    `  ${selfFunding ? 'pass' : 'FAIL'}  the pot pays back what it takes plus its seed ` +
+      `(in ${(100 * takenIn / wagered).toFixed(2)}% + seeds ${(100 * seedGiven / wagered).toFixed(2)}%, out ${(100 * paidOut / wagered).toFixed(2)}%)`,
+  )
 }
 
 console.log('\nSegment unlocking\n')

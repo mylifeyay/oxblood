@@ -72,7 +72,7 @@ for (const l3 of CHOICES.l3)
                 for (const w5 of CHOICES.w5) {
                   if (m3 < l3 || m4 < l4 || m5 < l5) continue // mediums must beat lows
                   if (w3 < m3 || w4 < m4 || w5 < m5) continue // wild must beat mediums
-                  const paytable = CONFIG.paytable.map((r) => [...r] as [number, number, number])
+                  const paytable = CONFIG.paytable.map((r) => [...r])
                   for (const id of [L1, L2, L3, L4]) paytable[id] = [l3, l4, l5]
                   for (const id of [M1, M2]) paytable[id] = [m3, m4, m5]
                   paytable[WILD] = [w3, w4, w5]

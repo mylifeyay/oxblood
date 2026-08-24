@@ -82,14 +82,24 @@ VITE_BASE=/your-repo-name/ npm run build
 
 ## Machines
 
-Two cabinets are built. Oxblood pays ten fixed lines; Jade Parlour pays 243
-ways, lands a win on most spins, and costs more a spin. Both reward the same
-three bonus tiers with a clip from your library, and both return 94%.
+Three cabinets, all returning about 94%, all rewarding the same three bonus
+tiers with a clip from your library.
 
-A machine carries its own payout config (`src/game/`), skin, palette, sound and
-reel timings (`src/ui/skins.ts`, `src/styles/themes.css`). Adding one is data
-plus a theme block. Unlocks are driven by lifetime wagered or lifetime spins —
-the thresholds are deliberately not shown in the interface.
+| | Board | Scoring | Bet | Hit rate |
+| --- | --- | --- | --- | --- |
+| Oxblood | 5 × 3 | 10 fixed lines | 10 | 40.6% |
+| Jade Parlour | 5 × 3 | 243 ways | 25 | 57.4% |
+| Ember Room | 6 × 4 | 4096 ways + progressive | 50 | 61.8% |
+
+Ember takes 2% of every wager into a pot that pays out whole when six scatters
+land — which is also a Major, so the biggest hit on the machine pays the tier,
+plays a Legendary clip and empties the pot at once. The pot persists and only
+restarts when somebody wins it.
+
+A machine carries its own payout config and board size (`src/game/`), skin,
+palette, sound and reel timings (`src/ui/skins.ts`, `src/styles/themes.css`).
+Unlocks are driven by lifetime wagered or lifetime spins — the thresholds are
+deliberately not shown in the interface.
 
 ## Things worth knowing
 

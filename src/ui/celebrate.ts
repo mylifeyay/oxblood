@@ -129,6 +129,7 @@ export class Particles {
  */
 export class BigWin {
   private readonly root: HTMLDivElement
+  private readonly title: HTMLDivElement
   private readonly amount: HTMLDivElement
 
   constructor(host: HTMLElement) {
@@ -136,19 +137,21 @@ export class BigWin {
     this.root.className = 'bigwin'
     this.root.hidden = true
 
-    const title = document.createElement('div')
-    title.className = 'bigwin__title'
-    title.textContent = 'Big win'
+    this.title = document.createElement('div')
+    this.title.className = 'bigwin__title'
+    this.title.textContent = 'Big win'
 
     this.amount = document.createElement('div')
     this.amount.className = 'bigwin__amount'
 
-    this.root.append(title, this.amount)
+    this.root.append(this.title, this.amount)
     host.append(this.root)
   }
 
   /** Shows the panel and climbs to `payout` over `ms`. */
-  async show(payout: number, ms: number, onTick: (progress: number) => void): Promise<void> {
+  async show(payout: number, ms: number, onTick: (progress: number) => void, title = 'Big win'): Promise<void> {
+    this.title.textContent = title
+    this.root.classList.toggle('is-jackpot', title !== 'Big win')
     this.amount.textContent = '0'
     this.root.hidden = false
     void this.root.offsetHeight

@@ -1,6 +1,9 @@
 .cabinet {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+  /* A column rather than a fixed row template: machines add and remove panels
+     — Ember has a jackpot strip, the others do not — and a positional template
+     silently reassigns which row is allowed to grow when the count changes. */
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   height: 100%;
   padding: calc(var(--safe-t) + 10px) calc(var(--safe-r) + 12px)
@@ -57,7 +60,8 @@
 
 .screen {
   /* Reels sit high, like a real cabinet, with the belly panel below them.
-     Phases 3 and 7 fill that space with paylines, win overlays and particles. */
+     This is the one panel that takes the slack. */
+  flex: 1 1 auto;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -85,7 +89,8 @@
 
 .reels {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Set by the reel view from the machine's own reel count. */
+  grid-template-columns: repeat(var(--reel-count, 5), 1fr);
   gap: 5px;
   height: 100%;
 }

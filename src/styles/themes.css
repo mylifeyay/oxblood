@@ -159,3 +159,121 @@
     transform: translate(-50%, 14px);
   }
 }
+
+/* ---- Ember Room ---- */
+
+[data-machine='ember'] {
+  --cabinet: #170a08;
+  --felt: #2c1310;
+  --brass: #E8A33C;
+  --amber: #FF7A45;
+  --ember: #FF4D2E;
+  --jade: #E8A33C;
+  --ivory: #F6E7DE;
+
+  --cabinet-deep: #0d0605;
+  --cabinet-lift: #2a1109;
+  --well: #170706;
+  --brass-line: rgba(232, 163, 60, 0.32);
+  --brass-faint: rgba(232, 163, 60, 0.14);
+  --ivory-dim: rgba(246, 231, 222, 0.58);
+  --ivory-faint: rgba(246, 231, 222, 0.3);
+  --amber-glow: rgba(255, 122, 69, 0.45);
+  --well-lift: #26100c;
+  --panel-lift: #48201a;
+  --panel-sink: #1e0c09;
+}
+
+[data-machine='ember'] .cabinet {
+  background:
+    radial-gradient(130% 55% at 50% -12%, rgba(255, 122, 69, 0.16), transparent 62%),
+    linear-gradient(180deg, var(--cabinet-lift) 0%, var(--cabinet) 40%, var(--cabinet-deep) 100%);
+}
+
+/* Six by four needs a taller window than five by three. */
+[data-machine='ember'] .screen__frame {
+  max-height: min(100%, 84vw, 470px);
+}
+
+[data-machine='ember'] .tile__face {
+  font-size: calc(var(--cell-h, 60px) * 0.46);
+}
+
+[data-machine='ember'] .btn--spin {
+  background: linear-gradient(180deg, #ff9c62 0%, #e2603a 46%, #97341c 100%);
+  box-shadow:
+    0 2px 0 #5c1c0e,
+    0 0 24px rgba(255, 122, 69, 0.36),
+    inset 0 1px 0 rgba(255, 226, 208, 0.55);
+}
+
+[data-machine='ember'] .tile--m1 .tile__face {
+  color: #ffd08a;
+  text-shadow: 0 0 14px rgba(255, 208, 138, 0.6);
+}
+[data-machine='ember'] .tile--m2 .tile__face {
+  color: var(--amber);
+  text-shadow: 0 0 16px rgba(255, 122, 69, 0.7);
+}
+[data-machine='ember'] .tile--l1 .tile__face { color: var(--ivory); }
+[data-machine='ember'] .tile--l2 .tile__face { color: #E8A33C; }
+[data-machine='ember'] .tile--l3 .tile__face { color: #C77B5A; }
+[data-machine='ember'] .tile--l4 .tile__face { color: #9C6E92; }
+
+[data-machine='ember'] .tile--wild::before {
+  background: linear-gradient(180deg, #7a2f16, #33110a);
+  box-shadow: inset 0 0 0 1px var(--amber);
+}
+[data-machine='ember'] .tile--wild .tile__face {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--amber);
+}
+
+/* ---- The pot ---- */
+
+.jackpot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px 8px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 200% at 50% 120%, rgba(255, 122, 69, 0.22), transparent 70%),
+    var(--well);
+  box-shadow: 0 0 22px rgba(255, 122, 69, 0.16);
+}
+
+.jackpot[hidden] {
+  display: none;
+}
+
+.jackpot__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.jackpot__value {
+  font-family: var(--font-led);
+  font-size: 24px;
+  line-height: 1;
+  color: var(--amber);
+  text-shadow:
+    0 0 5px rgba(255, 122, 69, 0.95),
+    0 0 20px rgba(255, 122, 69, 0.5);
+}
+
+.bigwin.is-jackpot {
+  background: radial-gradient(120% 100% at 50% 40%, rgba(92, 32, 18, 0.97), rgba(10, 4, 3, 0.99));
+  box-shadow: inset 0 0 0 2px var(--amber);
+}
+
+.bigwin.is-jackpot .bigwin__title {
+  color: var(--amber);
+  text-shadow: 0 0 30px rgba(255, 122, 69, 0.7);
+}

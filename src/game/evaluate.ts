@@ -1,5 +1,5 @@
 import { SCATTER, SYMBOL_COUNT, WILD } from './symbols.ts'
-import { LINE_COUNT, PAYLINES, REELS, ROWS } from './paylines.ts'
+import { LINE_COUNT, PAYLINES, REELS } from './paylines.ts'
 import type { GameConfig } from './config.ts'
 
 export interface LineWin {
@@ -26,14 +26,16 @@ let lastCount = 0
  * Returns the payout in bet-per-line multiples, and leaves the winning symbol
  * and run length in the module scratch.
  */
-function scanLine(grid: Int8Array, line: number, paytable: GameConfig['paytable']): number {
+function scanLine(grid: Int8Array, line: number, config: GameConfig): number {
+  const paytable = config.paytable
+  const rows = config.rows
   const base = line * REELS
   lastSymbol = -1
   lastCount = 0
 
   // Leading WILDs, which both readings share.
   let wilds = 0
-  while (wilds < REELS && grid[wilds * ROWS + PAYLINES[base + wilds]!] === WILD) wilds++
+  while (wilds < REELS && grid[wilds * rows + PAYLINES[base + wilds]!] === WILD) wilds++
 
   let best = 0
   if (wilds >= 3) {
@@ -43,11 +45,11 @@ function scanLine(grid: Int8Array, line: number, paytable: GameConfig['paytable'
   }
 
   if (wilds < REELS) {
-    const symbol = grid[wilds * ROWS + PAYLINES[base + wilds]!]!
+    const symbol = grid[wilds * rows + PAYLINES[base + wilds]!]!
     if (symbol !== SCATTER) {
       let run = wilds + 1
       while (run < REELS) {
-        const next = grid[run * ROWS + PAYLINES[base + run]!]!
+        const next = grid[run * rows + PAYLINES[base + run]!]!
         if (next !== symbol && next !== WILD) break
         run++
       }
@@ -68,7 +70,7 @@ function scanLine(grid: Int8Array, line: number, paytable: GameConfig['paytable'
 /** Total line payout in credits. Allocation free — this is the simulator path. */
 export function evaluateLineTotal(grid: Int8Array, config: GameConfig, betPerLine: number): number {
   let total = 0
-  for (let line = 0; line < LINE_COUNT; line++) total += scanLine(grid, line, config.paytable)
+  for (let line = 0; line < LINE_COUNT; line++) total += scanLine(grid, line, config)
   return total * betPerLine
 }
 
@@ -77,7 +79,7 @@ export function evaluateLines(grid: Int8Array, config: GameConfig, betPerLine: n
   const wins: LineWin[] = []
   let total = 0
   for (let line = 0; line < LINE_COUNT; line++) {
-    const pay = scanLine(grid, line, config.paytable)
+    const pay = scanLine(grid, line, config)
     if (pay > 0) {
       total += pay
       wins.push({ line, symbol: lastSymbol, count: lastCount, pay: pay * betPerLine })
@@ -98,14 +100,16 @@ export function evaluateLines(grid: Int8Array, config: GameConfig, betPerLine: n
  * of wilds would pay once for every symbol it stood in for and once again as
  * itself.
  */
-function scanWays(grid: Int8Array, symbol: number, paytable: GameConfig['paytable']): { pay: number; reels: number; ways: number } {
+function scanWays(grid: Int8Array, symbol: number, config: GameConfig): { pay: number; reels: number; ways: number } {
+  const paytable = config.paytable
+  const rows = config.rows
   let ways = 1
   let reels = 0
 
-  for (let reel = 0; reel < REELS; reel++) {
+  for (let reel = 0; reel < config.reels.length; reel++) {
     let here = 0
-    for (let row = 0; row < ROWS; row++) {
-      const cell = grid[reel * ROWS + row]!
+    for (let row = 0; row < rows; row++) {
+      const cell = grid[reel * rows + row]!
       if (cell === symbol || cell === WILD) here++
     }
     if (here === 0) break
@@ -122,7 +126,7 @@ export function evaluateWaysTotal(grid: Int8Array, config: GameConfig, betPerUni
   let total = 0
   for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
     if (symbol === WILD || symbol === SCATTER) continue
-    total += scanWays(grid, symbol, config.paytable).pay
+    total += scanWays(grid, symbol, config).pay
   }
   return total * betPerUnit
 }
@@ -133,7 +137,7 @@ export function evaluateWays(grid: Int8Array, config: GameConfig, betPerUnit: nu
   let total = 0
   for (let symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
     if (symbol === WILD || symbol === SCATTER) continue
-    const { pay, reels } = scanWays(grid, symbol, config.paytable)
+    const { pay, reels } = scanWays(grid, symbol, config)
     if (pay <= 0) continue
     total += pay
     // `line` carries the symbol for ways wins; there are no fixed lines.

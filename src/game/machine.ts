@@ -1,5 +1,5 @@
 import { tierPay, type BonusTier, type GameConfig } from './config.ts'
-import { REELS, ROWS } from './paylines.ts'
+
 import { buildStrips, type Strip } from './reels.ts'
 import { countScatters, evaluateDetail, evaluateTotal, type LineWin } from './evaluate.ts'
 import { mulberry32, type Rng } from './random.ts'
@@ -18,6 +18,7 @@ export interface SpinSnapshot {
   readonly totalPayout: number
   readonly pityForced: boolean
   readonly cooldownBlocked: boolean
+  readonly jackpotPayout: number
 }
 
 /**
@@ -33,8 +34,8 @@ export class SlotMachine {
   readonly config: GameConfig
   readonly strips: readonly Strip[]
 
-  readonly stops = new Int32Array(REELS)
-  readonly grid = new Int8Array(REELS * ROWS)
+  readonly stops: Int32Array
+  readonly grid: Int8Array
 
   linePayout = 0
   scatterCount = 0
@@ -43,6 +44,10 @@ export class SlotMachine {
   totalPayout = 0
   pityForced = false
   cooldownBlocked = false
+  /** Credits in the pot right now. Zero on machines without a progressive. */
+  jackpot = 0
+  /** What this spin won from the pot, if anything. */
+  jackpotPayout = 0
 
   private readonly rng: Rng
   private betPerLineValue: number
@@ -54,6 +59,9 @@ export class SlotMachine {
     this.strips = buildStrips(config)
     this.rng = mulberry32(seed)
     this.betPerLineValue = config.betPerLine
+    this.stops = new Int32Array(config.reels.length)
+    this.grid = new Int8Array(config.reels.length * config.rows)
+    this.jackpot = this.seedJackpot
   }
 
   /**
@@ -79,6 +87,17 @@ export class SlotMachine {
     return this.betPerLineValue * this.config.lineCount
   }
 
+  /** The pot's restart value, in credits. */
+  get seedJackpot(): number {
+    const p = this.config.progressive
+    return p ? p.seedMultiple * this.config.totalBet : 0
+  }
+
+  /** Puts a saved pot back. */
+  restoreJackpot(value: number): void {
+    if (this.config.progressive) this.jackpot = Math.max(this.seedJackpot, value)
+  }
+
   get sinceMini(): number {
     return this.spinsSinceMini
   }
@@ -100,11 +119,12 @@ export class SlotMachine {
 
   /** One honest draw: random stop per reel, window read into the grid. */
   private roll(): void {
-    for (let reel = 0; reel < REELS; reel++) {
+    const rows = this.config.rows
+    for (let reel = 0; reel < this.strips.length; reel++) {
       const strip = this.strips[reel]!
       const stop = Math.floor(this.rng() * strip.length)
       this.stops[reel] = stop
-      for (let row = 0; row < ROWS; row++) this.grid[reel * ROWS + row] = strip.wrapped[stop + row]!
+      for (let row = 0; row < rows; row++) this.grid[reel * rows + row] = strip.wrapped[stop + row]!
     }
     this.scatterCount = countScatters(this.grid)
   }
@@ -141,10 +161,21 @@ export class SlotMachine {
       this.roll()
     }
 
+    // The pot takes its cut of the wager whether or not this spin pays.
+    const progressive = this.config.progressive
+    this.jackpotPayout = 0
+    if (progressive) {
+      this.jackpot += progressive.contribution * this.totalBet
+      if (this.scatterCount >= progressive.triggerScatters) {
+        this.jackpotPayout = Math.round(this.jackpot)
+        this.jackpot = this.seedJackpot
+      }
+    }
+
     this.tier = this.tierFor(this.scatterCount)
     this.bonusPayout = this.tier ? tierPay(this.tier, this.totalBet) : 0
     this.linePayout = evaluateTotal(this.grid, this.config, this.betPerLineValue)
-    this.totalPayout = this.linePayout + this.bonusPayout
+    this.totalPayout = this.linePayout + this.bonusPayout + this.jackpotPayout
 
     if (this.tier?.name === 'mini') this.spinsSinceMini = 0
     else this.spinsSinceMini = Math.min(this.spinsSinceMini + 1, COUNTER_CAP)
@@ -167,6 +198,7 @@ export class SlotMachine {
       totalPayout: this.totalPayout,
       pityForced: this.pityForced,
       cooldownBlocked: this.cooldownBlocked,
+      jackpotPayout: this.jackpotPayout,
     }
   }
 }

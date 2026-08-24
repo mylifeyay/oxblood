@@ -4,6 +4,11 @@
  * reels. Flattened into one array because the evaluator runs ten million times.
  */
 
+/**
+ * The default grid. Oxblood and Jade are five by three; Ember is six by four.
+ * A machine's own dimensions come from its config — these are the fallback and
+ * the shape the fixed paylines below are drawn on.
+ */
 export const REELS = 5
 export const ROWS = 3
 export const LINE_COUNT = 10

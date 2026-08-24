@@ -1,14 +1,18 @@
 import { SCATTER } from './symbols.ts'
-import { ROWS } from './paylines.ts'
+
 import { tierPay, type GameConfig } from './config.ts'
 
 /**
  * Closed-form scatter maths. The strip builder spaces scatter groups so that a
- * three-row window never straddles two of them, which makes the per-reel
- * distribution exact rather than estimated:
+ * window never straddles two of them, which makes the per-reel distribution
+ * exact rather than estimated. For a window `r` rows deep:
  *
- *   a single scatter is inside 3 of the N windows, always alone
- *   an adjacent pair is inside 4 windows — 2 showing both, 2 showing one
+ *   a single scatter is inside r of the N windows, always alone
+ *   an adjacent pair is inside r + 1 windows — r - 1 showing both, 2 showing one
+ *
+ * The `r - 1` matters: on a four-row board a pair shows as two scatters in
+ * three windows, not two, and assuming otherwise understates every rate above
+ * three scatters.
  *
  * Having this in closed form is what makes tuning tractable: the search runs in
  * microseconds and the Monte Carlo only has to confirm it.
@@ -19,10 +23,10 @@ export function reelScatterDistribution(config: GameConfig, reel: number): [numb
   const scatters = spec.weights[SCATTER] ?? 0
   const pairs = spec.scatterPairs
   const singles = scatters - pairs * 2
-  const windows = ROWS // windows in which any one group appears, per single
+  const rows = config.rows
 
-  const two = (2 * pairs) / total
-  const one = (windows * singles + 2 * pairs) / total
+  const two = ((rows - 1) * pairs) / total
+  const one = (rows * singles + 2 * pairs) / total
   return [1 - one - two, one, two]
 }
 

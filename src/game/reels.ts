@@ -1,7 +1,7 @@
 import { SCATTER } from './symbols.ts'
 import { mulberry32, shuffle, type Rng } from './random.ts'
 import type { GameConfig, ReelSpec } from './config.ts'
-import { ROWS } from './paylines.ts'
+
 
 export interface Strip {
   /** The strip itself, one symbol id per position. */
@@ -15,7 +15,7 @@ export interface Strip {
 }
 
 /**
- * Builds one reel strip.
+ * Builds one reel strip for a window `rows` deep.
  *
  * Scatters are placed as deliberate groups — singles, or adjacent pairs — with
  * at least two filler positions between every group. That gap guarantees a
@@ -24,7 +24,7 @@ export interface Strip {
  * windows and always alone, a pair is visible in four windows, showing two
  * scatters in two of them and one in the other two.
  */
-export function buildStrip(spec: ReelSpec, rng: Rng): Strip {
+export function buildStrip(spec: ReelSpec, rng: Rng, rows: number): Strip {
   const total = spec.weights.reduce((a, b) => a + b, 0)
   const scatters = spec.weights[SCATTER] ?? 0
   const pairs = spec.scatterPairs
@@ -40,7 +40,7 @@ export function buildStrip(spec: ReelSpec, rng: Rng): Strip {
 
   const fillerCount = total - scatters
   const gapCount = groups.length
-  const minGap = ROWS - 1
+  const minGap = rows - 1
 
   if (gapCount > 0 && fillerCount < gapCount * minGap) {
     throw new Error(`reel has ${fillerCount} non-scatter positions, needs ${gapCount * minGap} to space ${gapCount} scatter groups`)
@@ -75,9 +75,9 @@ export function buildStrip(spec: ReelSpec, rng: Rng): Strip {
   const rotated = new Int8Array(total)
   for (let i = 0; i < total; i++) rotated[i] = symbols[(i + offset) % total]!
 
-  const wrapped = new Int8Array(total + ROWS - 1)
+  const wrapped = new Int8Array(total + rows - 1)
   wrapped.set(rotated, 0)
-  for (let i = 0; i < ROWS - 1; i++) wrapped[total + i] = rotated[i]!
+  for (let i = 0; i < rows - 1; i++) wrapped[total + i] = rotated[i]!
 
   return { symbols: rotated, wrapped, length: total }
 }
@@ -85,5 +85,5 @@ export function buildStrip(spec: ReelSpec, rng: Rng): Strip {
 /** Deterministic from config.stripSeed, so the simulator tests what ships. */
 export function buildStrips(config: GameConfig): Strip[] {
   const rng = mulberry32(config.stripSeed)
-  return config.reels.map((spec) => buildStrip(spec, rng))
+  return config.reels.map((spec) => buildStrip(spec, rng, config.rows))
 }

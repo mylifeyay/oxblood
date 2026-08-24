@@ -36,8 +36,9 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
 
     const table = document.createElement('table')
     table.className = 'paytable'
+    const runs = Math.max(...config.paytable.map((row) => row.length))
     const head = document.createElement('tr')
-    for (const label of ['', '3', '4', '5']) {
+    for (const label of ['', ...Array.from({ length: runs }, (_, i) => String(i + 3))]) {
       const th = document.createElement('th')
       th.textContent = label
       head.append(th)

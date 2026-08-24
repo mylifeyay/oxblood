@@ -80,7 +80,7 @@ function makeConfig(p: Params, paytableScale: number): GameConfig {
       makeReel(3, p.scattersB, p.pairsB),
       makeReel(4, p.scattersB, p.pairsB),
     ],
-    paytable: CONFIG.paytable.map((r) => [r[0] * paytableScale, r[1] * paytableScale, r[2] * paytableScale] as [number, number, number]),
+    paytable: CONFIG.paytable.map((r) => r.map((v) => v * paytableScale)),
   }
 }
 

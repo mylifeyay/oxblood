@@ -59,6 +59,16 @@ jadeFaces[M2] = face('☾', 'medium', 'crescent')
 jadeFaces[WILD] = face('❖', 'wild', 'wild')
 jadeFaces[SCATTER] = face('✺', 'scatter', 'scatter')
 
+const emberFaces: SymbolFace[] = []
+emberFaces[L1] = face('◇', 'low', 'facet')
+emberFaces[L2] = face('▽', 'low', 'wedge')
+emberFaces[L3] = face('◻', 'low', 'plate')
+emberFaces[L4] = face('◯', 'low', 'ring')
+emberFaces[M1] = face('✹', 'medium', 'spark')
+emberFaces[M2] = face('✷', 'medium', 'flare')
+emberFaces[WILD] = face('✳', 'wild', 'wild')
+emberFaces[SCATTER] = face('❂', 'scatter', 'scatter')
+
 export const SKINS: Record<string, Skin> = {
   oxblood: {
     faces: oxbloodFaces,
@@ -125,6 +135,41 @@ export const SKINS: Record<string, Skin> = {
       riserFrom: 150,
       riserTo: 760,
       riserType: 'triangle',
+    },
+  },
+
+  // Quick and hard. Six reels stopping 130ms apart is a drum roll rather than
+  // the measured tick of the other two, and the voice is brighter and harsher.
+  ember: {
+    faces: emberFaces,
+    motion: {
+      spinSpeed: 0.038,
+      baseSpinMs: 620,
+      staggerMs: 130,
+      stopMs: 300,
+      settleMs: 180,
+      overshootPx: 10,
+      liftPx: 10,
+      anticipationMs: 1300,
+    },
+    sound: {
+      clackHz: 1950,
+      clackDecay: 0.04,
+      thumpHz: 150,
+      tickBase: 900,
+      tickSpread: 1200,
+      chime: 'square',
+      smallRun: [1244, 1661],
+      mediumRun: [1244, 1661, 1975],
+      bigRun: [830, 1244, 1661, 1975, 2489],
+      bonusRuns: {
+        mini: { notes: [622, 831, 1046], type: 'square', length: 0.24 },
+        minor: { notes: [740, 988, 1244, 1480], type: 'square', length: 0.3 },
+        major: { notes: [311, 466, 622, 831, 1046, 1244], type: 'sawtooth', length: 0.6 },
+      },
+      riserFrom: 240,
+      riserTo: 1300,
+      riserType: 'sawtooth',
     },
   },
 }

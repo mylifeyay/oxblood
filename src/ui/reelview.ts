@@ -1,5 +1,5 @@
 import type { Strip } from '../game/reels.ts'
-import { REELS, ROWS } from '../game/paylines.ts'
+
 import { SCATTER } from '../game/symbols.ts'
 import { FACE_CLASS, type SymbolFace } from './symbols.ts'
 import type { MotionProfile } from './skins.ts'
@@ -18,7 +18,7 @@ import type { MotionProfile } from './skins.ts'
  * than a thousand.
  */
 
-const TILES = ROWS + 2
+
 
 /** Minimum travel once stopping starts, so a reel never jerks to a halt. */
 const MIN_STOP_TRAVEL = 4
@@ -87,14 +87,20 @@ export class ReelView {
 
   private readonly faces: readonly SymbolFace[]
   private readonly motion: MotionProfile
+  private readonly rows: number
+  private readonly tiles: number
 
-  constructor(host: HTMLElement, strips: readonly Strip[], faces: readonly SymbolFace[], motion: MotionProfile) {
+  constructor(host: HTMLElement, strips: readonly Strip[], faces: readonly SymbolFace[], motion: MotionProfile, rows: number) {
     this.host = host
     this.faces = faces
     this.motion = motion
+    this.rows = rows
+    this.tiles = rows + 2
+    host.style.setProperty('--reel-count', String(strips.length))
+    host.style.setProperty('--row-count', String(rows))
     host.replaceChildren()
 
-    for (let r = 0; r < REELS; r++) {
+    for (let r = 0; r < strips.length; r++) {
       const strip = strips[r]!
       const el = document.createElement('div')
       el.className = 'reel'
@@ -103,7 +109,7 @@ export class ReelView {
       ribbon.className = 'reel__ribbon'
 
       const tiles: HTMLElement[] = []
-      for (let t = 0; t < TILES; t++) {
+      for (let t = 0; t < this.tiles; t++) {
         const tile = document.createElement('div')
         tile.className = 'tile'
         const face = document.createElement('span')
@@ -120,7 +126,7 @@ export class ReelView {
         el,
         ribbon,
         tiles,
-        shown: new Array<number>(TILES).fill(-1),
+        shown: new Array<number>(this.tiles).fill(-1),
         strip,
         pos: Math.floor(Math.random() * strip.length),
         phase: 'idle',
@@ -147,7 +153,7 @@ export class ReelView {
     if (!first) return
     const height = first.el.clientHeight
     if (height <= 0) return
-    this.cellHeight = height / ROWS
+    this.cellHeight = height / this.rows
     this.host.style.setProperty('--cell-h', `${this.cellHeight}px`)
     for (const reel of this.reels) this.draw(reel)
   }
@@ -165,7 +171,7 @@ export class ReelView {
   private scattersAt(r: number, stop: number): number {
     const strip = this.reels[r]!.strip
     let count = 0
-    for (let row = 0; row < ROWS; row++) if (strip.wrapped[mod(stop, strip.length) + row] === SCATTER) count++
+    for (let row = 0; row < this.rows; row++) if (strip.wrapped[mod(stop, strip.length) + row] === SCATTER) count++
     return count
   }
 
@@ -181,12 +187,13 @@ export class ReelView {
    * seven and stop meaning anything.
    */
   private anticipationPlan(stops: readonly number[]): boolean[] {
-    const plan = new Array<boolean>(REELS).fill(false)
+    const count = this.reels.length
+    const plan = new Array<boolean>(count).fill(false)
     let reelsLit = 0
     let scatters = 0
-    for (let i = 0; i < REELS; i++) {
+    for (let i = 0; i < count; i++) {
       const undecided = scatters < 3
-      if (i >= 2 && reelsLit >= 2 && (i < REELS - 1 || undecided)) plan[i] = true
+      if (i >= 2 && reelsLit >= 2 && (i < count - 1 || undecided)) plan[i] = true
       const here = this.scattersAt(i, stops[i]!)
       if (here > 0) reelsLit++
       scatters += here
@@ -363,7 +370,7 @@ export class ReelView {
     }
     reel.lastPos = reel.pos
 
-    for (let t = 0; t < TILES; t++) {
+    for (let t = 0; t < this.tiles; t++) {
       const symbol = reel.strip.symbols[mod(base + t - 1, reel.strip.length)]!
       if (reel.shown[t] === symbol) continue
       reel.shown[t] = symbol
