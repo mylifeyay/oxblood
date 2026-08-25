@@ -403,3 +403,156 @@ html.is-free .cabinet {
     animation: none;
   }
 }
+
+/* ---- The way in ---- */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  /* An explicit track, not `place-items` alone: a row sized to its content
+     makes the panel's `max-height: 100%` a no-op, and on a short phone the
+     heading slides off the top instead of the body scrolling. */
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  padding: calc(var(--safe-t) + 12px) 12px calc(var(--safe-b) + 12px);
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--amber) 10%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--cabinet-lift) 0%, var(--cabinet) 45%, var(--cabinet-deep) 100%);
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.intro.is-open {
+  opacity: 1;
+}
+
+.intro__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(100%, 560px);
+  max-height: 100%;
+  padding: 22px 20px 18px;
+  border: 1px solid var(--brass-line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-lift) 0%, var(--panel-sink) 100%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.intro__content {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.intro__content p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.62;
+  color: var(--ivory-dim);
+}
+
+.intro__content p:last-child {
+  margin-bottom: 0;
+}
+
+/* The name, given room to be the only thing on the page. */
+.intro__content--title {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 32px 0 20px;
+  text-align: center;
+}
+
+.intro__wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 15vw, 66px);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--ivory);
+  text-shadow:
+    0 0 24px var(--amber-glow),
+    0 0 60px var(--amber-glow);
+}
+
+.intro__rule {
+  width: 92px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+}
+
+.intro__lead {
+  max-width: 26em;
+  text-wrap: balance;
+  font-size: 13px !important;
+  letter-spacing: 0.04em;
+  color: var(--ivory-faint) !important;
+}
+
+.intro__title {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 6.5vw, 27px);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.intro__foot {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.intro__dots {
+  display: flex;
+  gap: 7px;
+}
+
+.intro__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brass-faint);
+  transition: background 200ms ease;
+}
+
+.intro__dot.is-on {
+  background: var(--brass);
+}
+
+.intro__next {
+  width: 100%;
+  min-height: 46px;
+}
+
+.intro__skip {
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ivory-faint);
+  cursor: pointer;
+}
+
+.intro__skip[hidden] {
+  display: none;
+}
+
+.intro__skip:hover {
+  color: var(--ivory-dim);
+}

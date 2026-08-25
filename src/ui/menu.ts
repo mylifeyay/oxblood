@@ -6,6 +6,7 @@ import { openSheet } from './sheet.ts'
 import { openLibrary } from './library.ts'
 import { openUnlocked } from './unlocked.ts'
 import { openMachines } from './machines.ts'
+import { openIntro } from './intro.ts'
 import { listUnlocked } from '../game/videos.ts'
 
 function row(label: string, hint: string, onClick: () => void): HTMLButtonElement {
@@ -62,6 +63,8 @@ export function openMenu(book: Book, sound: Sound, activeMachineId: string): voi
     }
     paintSound()
     list.append(soundRow)
+
+    list.append(row('About this game', 'What it is, and how to play', () => openIntro(sound, () => openLibrary())))
 
     void listVideos().then((videos) => {
       const hint = library.querySelector('.menu-row__hint')

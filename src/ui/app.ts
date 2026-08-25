@@ -16,6 +16,8 @@ import { HoldStage } from './holdstage.ts'
 import { FreeStage } from './freestage.ts'
 import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
+import { openIntro } from './intro.ts'
+import { openLibrary } from './library.ts'
 import { openStats } from './stats.ts'
 import { DEFAULT_MACHINE, machineById } from '../game/machines.ts'
 import { newlyPlayable } from './machines.ts'
@@ -543,6 +545,13 @@ export async function startGame(): Promise<void> {
   renderMeters()
   refreshButtons()
   setReadout(book.balance < machine.totalBet ? shortfallMessage() : 'Spin to play')
+
+  // First run only. The flag is written when the tour ends rather than when it
+  // starts, so closing the app halfway through means it is still owed.
+  if (!(await loadPref('introSeen', false))) {
+    openIntro(sound, () => openLibrary())
+    void saveSetting('introSeen', true)
+  }
 
   // A Major lands once in eight hundred spins, which is no way to check that
   // its longer wipe and held beat look right. Stripped from production builds.
