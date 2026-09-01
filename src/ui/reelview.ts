@@ -1,4 +1,4 @@
-import type { Strip } from '../game/reels.ts'
+import { dealStills, type Strip } from '../game/reels.ts'
 
 import { SCATTER } from '../game/symbols.ts'
 import { FACE_CLASS, type SymbolFace } from './symbols.ts'
@@ -56,6 +56,10 @@ interface Reel {
   readonly ribbon: HTMLElement
   readonly tiles: HTMLElement[]
   readonly shown: number[]
+  /** The still each tile is currently wearing, so a moved wild redraws. */
+  readonly shownStill: string[]
+  /** Which still each strip position wears; -1 where the symbol is not a wild. */
+  stillAt: Int16Array
   readonly strip: Strip
   pos: number
   phase: 'idle' | 'dip' | 'spinning' | 'stopping' | 'settling'
@@ -89,6 +93,8 @@ export class ReelView {
   private readonly motion: MotionProfile
   private readonly rows: number
   private readonly tiles: number
+  /** Poster frames the wild wears once a clip has been screened. */
+  private stills: readonly string[] = []
 
   constructor(host: HTMLElement, strips: readonly Strip[], faces: readonly SymbolFace[], motion: MotionProfile, rows: number) {
     this.host = host
@@ -127,6 +133,8 @@ export class ReelView {
         ribbon,
         tiles,
         shown: new Array<number>(this.tiles).fill(-1),
+        shownStill: new Array<string>(this.tiles).fill(''),
+        stillAt: new Int16Array(strip.length).fill(-1),
         strip,
         pos: Math.floor(Math.random() * strip.length),
         phase: 'idle',
@@ -145,6 +153,31 @@ export class ReelView {
 
     this.measure()
     for (const reel of this.reels) this.draw(reel)
+  }
+
+  /**
+   * Dresses the wild in stills from clips the machine has played.
+   *
+   * Which still a wild wears is fixed by its position on the strip, not by
+   * where it happens to be on screen — so the pictures scroll past with the
+   * reel like any other symbol instead of flickering as the tiles recycle, and
+   * two wilds on the same board will often be two different clips.
+   *
+   * See `dealStills` for why the library is handed round the strips rather than
+   * indexed by position.
+   */
+  setStills(urls: readonly string[]): void {
+    this.stills = urls
+    const deal = dealStills(
+      this.reels.map((r) => r.strip),
+      (symbol) => this.faces[symbol]!.kind === 'wild',
+      urls.length,
+    )
+    this.reels.forEach((reel, i) => {
+      reel.stillAt = deal[i]!
+      reel.shownStill.fill('')
+      this.draw(reel)
+    })
   }
 
   /** Cell height comes from the laid-out DOM, so it survives any resize. */
@@ -391,14 +424,20 @@ export class ReelView {
     reel.lastPos = reel.pos
 
     for (let t = 0; t < this.tiles; t++) {
-      const symbol = reel.strip.symbols[mod(base + t - 1, reel.strip.length)]!
-      if (reel.shown[t] === symbol) continue
+      const at = mod(base + t - 1, reel.strip.length)
+      const symbol = reel.strip.symbols[at]!
+      const which = reel.stillAt[at]!
+      const still = which >= 0 ? (this.stills[which] ?? '') : ''
+      if (reel.shown[t] === symbol && reel.shownStill[t] === still) continue
       reel.shown[t] = symbol
+      reel.shownStill[t] = still
 
       const tile = reel.tiles[t]!
       const face = this.faces[symbol]!
-      tile.className = `tile tile--${FACE_CLASS[symbol]} tile--${face.kind}`
+      tile.className = `tile tile--${FACE_CLASS[symbol]} tile--${face.kind}${still ? ' tile--still' : ''}`
       tile.firstElementChild!.textContent = face.glyph
+      if (still) tile.style.setProperty('--still', `url("${still}")`)
+      else tile.style.removeProperty('--still')
     }
   }
 

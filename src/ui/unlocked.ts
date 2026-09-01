@@ -159,12 +159,16 @@ function segmentBar(meta: VideoMeta): HTMLElement {
   return bar
 }
 
-export function openUnlocked(): void {
+export function openUnlocked(onClosed?: () => void): void {
   let clips: VideoMeta[] = []
 
-  const sheet = openSheet('Unlocked clips', (body) => {
-    body.append(Object.assign(document.createElement('p'), { className: 'lib-empty', textContent: 'Loading' }))
-  })
+  const sheet = openSheet(
+    'Unlocked clips',
+    (body) => {
+      body.append(Object.assign(document.createElement('p'), { className: 'lib-empty', textContent: 'Loading' }))
+    },
+    onClosed,
+  )
 
   const render = (): void => {
     const body = sheet.body

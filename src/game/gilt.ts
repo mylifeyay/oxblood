@@ -57,10 +57,10 @@ export const GILT_CONFIG: GameConfig = {
     const t: number[][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0])
     t[L1] = [6]
     t[L2] = [6]
-    t[L3] = [15]
-    t[L4] = [15]
-    t[M1] = [40]
-    t[M2] = [110]
+    t[L3] = [16]
+    t[L4] = [16]
+    t[M1] = [41]
+    t[M2] = [112]
     t[WILD] = [0] // substitutes only
     t[SCATTER] = [0]
     t[FREE] = [0]
@@ -68,7 +68,7 @@ export const GILT_CONFIG: GameConfig = {
   })(),
 
   tiers: [
-    { name: 'mini', scatters: 3, payMultiple: 5 },
+    { name: 'mini', scatters: 3, payMultiple: 4 },
     { name: 'minor', scatters: 4, payMultiple: 20 },
     { name: 'major', scatters: 5, payMultiple: 100 },
   ],
@@ -80,7 +80,7 @@ export const GILT_CONFIG: GameConfig = {
     multiplierCap: 10,
   },
 
-  pitySpins: 40,
-  cooldownSpins: 4,
+  pitySpins: 30,
+  cooldownSpins: 3,
   stripSeed: 0x9117,
 }

@@ -132,7 +132,7 @@ function notes(book: Book, config: GameConfig): HTMLElement {
 
   section(
     'Where the money is',
-    'Roughly half the return comes from ordinary wins and half from the three bonuses. The Mini is deliberately small: it lands about once in twenty-five spins, so anything generous would break the economy. The video is the prize at that tier and the credits are garnish. The Major is where money actually lands.',
+    `Roughly half the return comes from ordinary wins and half from the three bonuses. The Mini is deliberately small: it is by far the most common of the three, so anything generous there would break the economy. The video is the prize at that tier and the credits are garnish — the Mini pays ${config.tiers[0]!.payMultiple} times the bet rather than five, and that cut is what buys the clips their frequency. The Major is where money actually lands.`,
   )
 
   section(

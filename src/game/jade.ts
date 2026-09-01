@@ -54,17 +54,17 @@ export const JADE_CONFIG: GameConfig = {
     const t: number[][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0])
     t[L1] = [1, 5, 15]
     t[L2] = [1, 5, 15]
-    t[L3] = [3, 10, 25]
-    t[L4] = [3, 10, 25]
-    t[M1] = [5, 25, 100]
-    t[M2] = [10, 40, 150]
+    t[L3] = [3, 10, 26]
+    t[L4] = [3, 10, 26]
+    t[M1] = [5, 26, 106]
+    t[M2] = [10, 41, 157]
     t[WILD] = [0, 0, 0] // substitutes only
     t[SCATTER] = [0, 0, 0]
     return t
   })(),
 
   tiers: [
-    { name: 'mini', scatters: 3, payMultiple: 5 },
+    { name: 'mini', scatters: 3, payMultiple: 4 },
     { name: 'minor', scatters: 4, payMultiple: 20 },
     { name: 'major', scatters: 5, payMultiple: 100 },
   ],
@@ -88,7 +88,7 @@ export const JADE_CONFIG: GameConfig = {
     fullBoardMultiple: 100,
   },
 
-  pitySpins: 40,
-  cooldownSpins: 4,
+  pitySpins: 30,
+  cooldownSpins: 3,
   stripSeed: 0x3ade1,
 }

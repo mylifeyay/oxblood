@@ -87,3 +87,32 @@ export function buildStrips(config: GameConfig): Strip[] {
   const rng = mulberry32(config.stripSeed)
   return config.reels.map((spec) => buildStrip(spec, rng, config.rows))
 }
+
+/**
+ * Deals a library of stills across the wilds of a whole cabinet.
+ *
+ * Returns, per reel, which still each strip position wears — and -1 wherever
+ * the symbol is not a wild.
+ *
+ * The obvious mapping is the position modulo the library size, and it is wrong:
+ * with a handful of clips and a couple of dozen wilds, the residues clump badly
+ * enough that one clip takes half the wilds and another almost none. Dealing
+ * them in strip order is even by construction. The deal runs across the whole
+ * cabinet rather than restarting on each reel, because a single reel can hold
+ * fewer wilds than the library holds clips, and restarting would mean the clips
+ * past that never appeared at all.
+ */
+export function dealStills(strips: readonly Strip[], isWild: (symbol: number) => boolean, count: number): Int16Array[] {
+  const out = strips.map((strip) => new Int16Array(strip.length).fill(-1))
+  if (count <= 0) return out
+
+  let dealt = 0
+  strips.forEach((strip, reel) => {
+    const row = out[reel]!
+    for (let at = 0; at < strip.length; at++) {
+      if (!isWild(strip.symbols[at]!)) continue
+      row[at] = dealt++ % count
+    }
+  })
+  return out
+}

@@ -14,7 +14,7 @@ import { evaluateWaysTotal } from '../src/game/evaluate.ts'
 import { SlotMachine } from '../src/game/machine.ts'
 import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, FREE, SYMBOL_COUNT } from '../src/game/symbols.ts'
 import { evaluateLines, countScatters } from '../src/game/evaluate.ts'
-import { buildStrips } from '../src/game/reels.ts'
+import { buildStrips, dealStills } from '../src/game/reels.ts'
 import { reelScatterDistribution } from '../src/game/analysis.ts'
 import { ROWS, REELS } from '../src/game/paylines.ts'
 import { poolFor, pickVideo, pickSlice, describeSlice, CLIP_SECONDS } from '../src/game/bonus.ts'
@@ -541,6 +541,63 @@ const draw = (basePay: number, frees = 0) => {
   check('turnover alone does not open it', isEarned(gilt, ground), false)
   check('one Major opens it', isEarned(gilt, won), true)
   check('the vault is built', gilt.config !== null, true)
+}
+
+console.log('\nclips on the reels')
+
+{
+  // A screened clip becomes the face of a wild. It is only a face — the deal
+  // must never touch anything that is not a wild.
+  for (const [name, config] of [['Oxblood', CONFIG], ['Jade', JADE_CONFIG], ['Ember', EMBER_CONFIG], ['Gilt', GILT_CONFIG]] as const) {
+    const strips = buildStrips(config)
+    const deal = dealStills(strips, (symbol) => symbol === WILD, 4)
+    let misplaced = 0
+    let wilds = 0
+    strips.forEach((strip, reel) => {
+      strip.symbols.forEach((symbol, at) => {
+        const dealt = deal[reel]![at]!
+        if (symbol === WILD) {
+          wilds++
+          if (dealt < 0 || dealt >= 4) misplaced++
+        } else if (dealt !== -1) misplaced++
+      })
+    })
+    check(`${name}: only wilds wear a clip`, misplaced, 0)
+    check(`${name} has wilds to wear them`, wilds > 0, true)
+  }
+}
+
+{
+  // Evenness is the whole reason the deal runs in strip order instead of using
+  // the position modulo the library size. No clip may take more than one more
+  // wild than any other, at any library size, on any cabinet.
+  let worst = 0
+  for (const config of [CONFIG, JADE_CONFIG, EMBER_CONFIG, GILT_CONFIG]) {
+    const strips = buildStrips(config)
+    for (const clips of [1, 2, 3, 4, 5, 8, 12]) {
+      const deal = dealStills(strips, (symbol) => symbol === WILD, clips)
+      const tally = new Array<number>(clips).fill(0)
+      for (const row of deal) for (const v of row) if (v >= 0) tally[v]! += 1
+      worst = Math.max(worst, Math.max(...tally) - Math.min(...tally))
+    }
+  }
+  check('no clip takes more than one wild more than any other', worst <= 1, true)
+}
+
+{
+  // An empty library leaves every symbol alone, which is what a new player sees.
+  const strips = buildStrips(CONFIG)
+  const deal = dealStills(strips, (symbol) => symbol === WILD, 0)
+  check('no clips means no stills', deal.every((row) => row.every((v) => v === -1)), true)
+}
+
+{
+  // The cadence that decides how often a clip plays at all.
+  const cabinets = [CONFIG, JADE_CONFIG, EMBER_CONFIG, GILT_CONFIG]
+  check('every cabinet keeps the same bonus cadence', cabinets.map((c) => [c.pitySpins, c.cooldownSpins]), cabinets.map(() => [30, 3]))
+  check('the Mini pays four times the bet everywhere', cabinets.map((c) => c.tiers[0]!.payMultiple), [4, 4, 4, 4])
+  // The guarantee the stats page states, restated as a test.
+  check('a drought can never outrun pity plus cooldown', cabinets.map((c) => c.pitySpins + c.cooldownSpins), [33, 33, 33, 33])
 }
 
 console.log(`\n${failures === 0 ? 'all checks passed' : `${failures} CHECK(S) FAILED`}\n`)

@@ -87,7 +87,7 @@ export function openHelp(config: GameConfig, faces: readonly SymbolFace[]): void
     const wildRow = document.createElement('p')
     wildRow.className = 'help-inline'
     wildRow.append(glyph(WILD))
-    wildRow.append(document.createTextNode(' substitutes for all but the scatter.'))
+    wildRow.append(document.createTextNode(' substitutes for all but the scatter, and wears a clip you have already won.'))
     body.append(wildRow)
 
     if (ways) {

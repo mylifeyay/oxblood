@@ -24,12 +24,17 @@ function row(label: string, hint: string, onClick: () => void): HTMLButtonElemen
   return button
 }
 
-export function openMenu(book: Book, sound: Sound, activeMachineId: string): void {
+/**
+ * `onLibraryChanged` fires when the player has been somewhere that could change
+ * which clips exist or which have been played — the reels wear those, so they
+ * need to hear about it.
+ */
+export function openMenu(book: Book, sound: Sound, activeMachineId: string, onLibraryChanged?: () => void): void {
   openSheet('Menu', (body) => {
     const list = document.createElement('div')
     list.className = 'menu-list'
 
-    const unlocked = row('Unlocked clips', 'Counting wins', () => openUnlocked())
+    const unlocked = row('Unlocked clips', 'Counting wins', () => openUnlocked(onLibraryChanged))
     list.append(unlocked)
     void listUnlocked().then((clips) => {
       const hint = unlocked.querySelector('.menu-row__hint')
@@ -41,7 +46,7 @@ export function openMenu(book: Book, sound: Sound, activeMachineId: string): voi
           : `${clips.length === 1 ? '1 clip' : `${clips.length} clips`}${hearted ? ` · ${hearted} hearted` : ''}`
     })
 
-    const library = row('Video library', 'Counting clips', () => openLibrary())
+    const library = row('Video library', 'Counting clips', () => openLibrary(onLibraryChanged))
     list.append(library)
 
     list.append(
@@ -64,7 +69,7 @@ export function openMenu(book: Book, sound: Sound, activeMachineId: string): voi
     paintSound()
     list.append(soundRow)
 
-    list.append(row('About this game', 'What it is, and how to play', () => openIntro(sound, () => openLibrary())))
+    list.append(row('About this game', 'What it is, and how to play', () => openIntro(sound, () => openLibrary(onLibraryChanged))))
 
     void listVideos().then((videos) => {
       const hint = library.querySelector('.menu-row__hint')

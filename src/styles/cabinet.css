@@ -313,3 +313,34 @@
   color: var(--ember);
   text-shadow: 0 0 14px rgba(226, 72, 60, 0.35);
 }
+
+/* ---- Wilds wearing your own clips ----
+
+   Once a clip has been screened its poster becomes the face of the wild. The
+   picture changes; the symbol does not. The brass ring, the scrim and the mark
+   at the foot stay constant across every still so the tile still reads as a
+   wild at a glance and at speed. */
+
+.tile--still::before {
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.78) 100%),
+    var(--still);
+  background-size: cover, cover;
+  background-position: center, center;
+  box-shadow:
+    inset 0 0 0 1px var(--brass),
+    inset 0 0 14px rgba(0, 0, 0, 0.5);
+}
+
+.tile--still .tile__face {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--cell-h, 60px) * 0.06);
+  font-size: calc(var(--cell-h, 60px) * 0.22);
+  text-align: center;
+  color: var(--amber);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(255, 180, 67, 0.7);
+}

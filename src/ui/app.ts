@@ -17,6 +17,7 @@ import { FreeStage } from './freestage.ts'
 import { openAddCredit } from './addcredit.ts'
 import { openHelp } from './help.ts'
 import { openIntro } from './intro.ts'
+import { Stills } from './stills.ts'
 import { openLibrary } from './library.ts'
 import { openStats } from './stats.ts'
 import { DEFAULT_MACHINE, machineById } from '../game/machines.ts'
@@ -66,6 +67,15 @@ export async function startGame(): Promise<void> {
   const bonus = new BonusStage(Math.random, sound)
   const holdStage = new HoldStage(sound)
   const freeStage = new FreeStage(sound, need('tiers'))
+
+  // Clips the machine has played come back as the face of the wild. Refreshed
+  // after every reveal, so a clip won this session is on the reels by the next
+  // spin rather than the next launch.
+  const stills = new Stills()
+  const refreshStills = async (): Promise<void> => {
+    if (await stills.refresh()) view.setStills(stills.list)
+  }
+  void refreshStills()
   const particles = new Particles(frame)
   const bigWin = new BigWin(frame)
   const credits = new CreditMeter(creditMeter, (progress) => sound.coinTick(progress))
@@ -291,6 +301,7 @@ export async function startGame(): Promise<void> {
         setReadout(describe(snap))
         await credits.rollTo(book.balance, rollDuration(snap.totalPayout))
       }
+      if (snap.tier) await refreshStills()
     } finally {
       revealing = false
     }
@@ -517,7 +528,7 @@ export async function startGame(): Promise<void> {
 
   spinButton.addEventListener('click', spin)
   addButton.addEventListener('click', addCredit)
-  menuButton.addEventListener('click', () => openMenu(book, sound, active.id))
+  menuButton.addEventListener('click', () => openMenu(book, sound, active.id, () => void refreshStills()))
 
   // Stats are not on the menu. Three taps on the marquee opens them.
   let titleTaps = 0

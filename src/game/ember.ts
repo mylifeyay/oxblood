@@ -56,17 +56,17 @@ export const EMBER_CONFIG: GameConfig = {
     //           3   4    5    6
     t[L1] = [0, 2, 4, 6]
     t[L2] = [0, 2, 4, 6]
-    t[L3] = [0, 2, 6, 15]
-    t[L4] = [0, 2, 6, 15]
-    t[M1] = [2, 10, 40, 100]
-    t[M2] = [5, 20, 100, 300]
+    t[L3] = [0, 2, 6, 16]
+    t[L4] = [0, 2, 6, 16]
+    t[M1] = [2, 10, 41, 102]
+    t[M2] = [5, 21, 102, 303]
     t[WILD] = [0, 0, 0] // substitutes only
     t[SCATTER] = [0, 0, 0]
     return t
   })(),
 
   tiers: [
-    { name: 'mini', scatters: 3, payMultiple: 5 },
+    { name: 'mini', scatters: 3, payMultiple: 4 },
     { name: 'minor', scatters: 4, payMultiple: 20 },
     { name: 'major', scatters: 5, payMultiple: 100 },
   ],
@@ -77,7 +77,7 @@ export const EMBER_CONFIG: GameConfig = {
     triggerScatters: 6,
   },
 
-  pitySpins: 40,
-  cooldownSpins: 4,
+  pitySpins: 30,
+  cooldownSpins: 3,
   stripSeed: 0xe4be7,
 }

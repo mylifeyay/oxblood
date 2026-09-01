@@ -128,13 +128,13 @@ export const CONFIG: GameConfig = {
   // Whole numbers only: the credit meter ticks in whole credits.
   paytable: (() => {
     const t: number[][] = new Array(SYMBOL_COUNT).fill(null).map(() => [0, 0, 0])
-    t[L1] = [3, 12, 70]
-    t[L2] = [3, 12, 70]
-    t[L3] = [3, 12, 70]
-    t[L4] = [3, 12, 70]
-    t[M1] = [6, 30, 170]
-    t[M2] = [6, 30, 170]
-    t[WILD] = [15, 70, 1250]
+    t[L1] = [3, 12, 71]
+    t[L2] = [3, 12, 71]
+    t[L3] = [3, 12, 71]
+    t[L4] = [3, 12, 71]
+    t[M1] = [6, 30, 175]
+    t[M2] = [6, 30, 175]
+    t[WILD] = [15, 71, 1288]
     t[SCATTER] = [0, 0, 0] // scatters pay through the bonus tiers, never on lines
     return t
   })(),
@@ -142,13 +142,13 @@ export const CONFIG: GameConfig = {
   // 5x, 20x and 100x the total bet — which is 50, 200 and 1000 at the default
   // bet of ten, exactly as the maths was tuned.
   tiers: [
-    { name: 'mini', scatters: 3, payMultiple: 5 },
+    { name: 'mini', scatters: 3, payMultiple: 4 },
     { name: 'minor', scatters: 4, payMultiple: 20 },
     { name: 'major', scatters: 5, payMultiple: 100 },
   ],
 
-  pitySpins: 40,
-  cooldownSpins: 4,
+  pitySpins: 30,
+  cooldownSpins: 3,
   stripSeed: 0x5c1a7,
 }
 

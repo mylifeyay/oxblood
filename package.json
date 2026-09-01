@@ -17,7 +17,9 @@
     "build:pages": "VITE_BASE=/${REPO:-slot-game}/ npm run build",
     "regress": "node scripts/regress.ts",
     "tune:gilt": "node scripts/tune-gilt.ts",
-    "verify:gilt": "node scripts/verify-gilt.ts"
+    "verify:gilt": "node scripts/verify-gilt.ts",
+    "rebalance": "node scripts/rebalance.ts",
+    "tiers": "node scripts/tiers.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
