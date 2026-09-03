@@ -1,10 +1,8 @@
 import { sha256 } from './sha256.ts'
+import { capturePoster, once } from './poster.ts'
 import { findByFingerprint, saveVideo, type VideoMeta } from './videos.ts'
 
 const METADATA_TIMEOUT_MS = 25_000
-const SEEK_TIMEOUT_MS = 25_000
-const POSTER_MAX_EDGE = 360
-const POSTER_QUALITY = 0.72
 /** The brief's fingerprint: SHA-256 of the first megabyte, plus size and duration. */
 const FINGERPRINT_BYTES = 1024 * 1024
 
@@ -30,70 +28,6 @@ function newId(): string {
   const c = globalThis.crypto
   if (c && 'randomUUID' in c) return c.randomUUID()
   return `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
-}
-
-function once(video: HTMLVideoElement, event: string, ms: number, timeoutMessage: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const finish = (act: () => void): void => {
-      clearTimeout(timer)
-      video.removeEventListener(event, ok)
-      video.removeEventListener('error', bad)
-      act()
-    }
-    const ok = (): void => finish(resolve)
-    const bad = (): void => finish(() => reject(new Error('could not be decoded')))
-    const timer = setTimeout(() => finish(() => reject(new Error(timeoutMessage))), ms)
-    video.addEventListener(event, ok, { once: true })
-    video.addEventListener('error', bad, { once: true })
-  })
-}
-
-async function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
-  if (Math.abs(video.currentTime - time) < 0.001 && video.readyState >= 2) return
-  const settled = once(video, 'seeked', SEEK_TIMEOUT_MS, 'took too long to seek')
-  video.currentTime = time
-  await settled
-}
-
-/** True when the frame is essentially a black rectangle. */
-function looksBlank(ctx: CanvasRenderingContext2D, width: number, height: number): boolean {
-  const { data } = ctx.getImageData(0, 0, width, height)
-  let sum = 0
-  let sumSquares = 0
-  let n = 0
-  // Every 40th pixel is plenty to tell black from a picture.
-  for (let i = 0; i < data.length; i += 4 * 40) {
-    const lum = 0.299 * data[i]! + 0.587 * data[i + 1]! + 0.114 * data[i + 2]!
-    sum += lum
-    sumSquares += lum * lum
-    n++
-  }
-  if (n === 0) return true
-  const mean = sum / n
-  return mean < 10 && sumSquares / n - mean * mean < 8
-}
-
-async function capturePoster(video: HTMLVideoElement, duration: number, width: number, height: number): Promise<Blob> {
-  // Size the canvas from videoWidth/videoHeight read after metadata loaded, so
-  // a portrait clip shot on a phone comes out portrait rather than sideways.
-  const scale = Math.min(1, POSTER_MAX_EDGE / Math.max(width, height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(width * scale))
-  canvas.height = Math.max(1, Math.round(height * scale))
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) throw new Error('this device would not open a canvas for the poster')
-
-  // Ten per cent in skips intros and fade-ups. If that frame is black anyway,
-  // try again a third of the way in rather than storing a black rectangle.
-  for (const fraction of [0.1, 0.35]) {
-    await seekTo(video, Math.min(duration * fraction, Math.max(0, duration - 0.05)))
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    if (!looksBlank(ctx, canvas.width, canvas.height)) break
-  }
-
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', POSTER_QUALITY))
-  if (!blob) throw new Error('the poster frame could not be encoded')
-  return blob
 }
 
 interface Read {

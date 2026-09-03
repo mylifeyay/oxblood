@@ -75,6 +75,9 @@ export async function startGame(): Promise<void> {
   const refreshStills = async (): Promise<void> => {
     if (await stills.refresh()) view.setStills(stills.list)
   }
+  // A clip whose stored poster was blank gets a fresh frame pulled in the
+  // background; this puts it on the reels as soon as it is ready.
+  stills.onRepaired = () => void refreshStills()
   void refreshStills()
   const particles = new Particles(frame)
   const bigWin = new BigWin(frame)

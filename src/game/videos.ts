@@ -70,6 +70,16 @@ export async function saveVideo(meta: VideoMeta, blob: Blob): Promise<void> {
   await tx.done
 }
 
+/** Replaces a clip's poster in place, leaving the blob and everything else alone. */
+export async function setPoster(id: string, poster: Blob): Promise<void> {
+  const db = await database()
+  if (!db) return
+  const tx = db.transaction('videos', 'readwrite')
+  const meta = (await tx.store.get(id)) as VideoMeta | undefined
+  if (meta) await tx.store.put({ ...meta, poster })
+  await tx.done
+}
+
 export async function deleteVideos(ids: readonly string[]): Promise<void> {
   const db = await database()
   if (!db || ids.length === 0) return

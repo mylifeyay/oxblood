@@ -15,6 +15,7 @@ import { SlotMachine } from '../src/game/machine.ts'
 import { L1, L2, L3, L4, M1, M2, WILD, SCATTER, COIN, FREE, SYMBOL_COUNT } from '../src/game/symbols.ts'
 import { evaluateLines, countScatters } from '../src/game/evaluate.ts'
 import { buildStrips, dealStills } from '../src/game/reels.ts'
+import { looksBlank } from '../src/game/poster.ts'
 import { reelScatterDistribution } from '../src/game/analysis.ts'
 import { ROWS, REELS } from '../src/game/paylines.ts'
 import { poolFor, pickVideo, pickSlice, describeSlice, CLIP_SECONDS } from '../src/game/bonus.ts'
@@ -598,6 +599,23 @@ console.log('\nclips on the reels')
   check('the Mini pays four times the bet everywhere', cabinets.map((c) => c.tiers[0]!.payMultiple), [4, 4, 4, 4])
   // The guarantee the stats page states, restated as a test.
   check('a drought can never outrun pity plus cooldown', cabinets.map((c) => c.pitySpins + c.cooldownSpins), [33, 33, 33, 33])
+}
+
+console.log('\nposter frames')
+
+{
+  // The test that decides whether a frame has a picture in it. Both terms
+  // matter: a dark but real picture has a low mean and plenty of variance, and
+  // a flat card has a high mean and none. Only dark *and* featureless is blank.
+  check('pure black is blank', looksBlank({ mean: 0, variance: 0 }), true)
+  check('a near-black flat frame is blank', looksBlank({ mean: 4, variance: 2 }), true)
+  check('a dark frame with detail is not blank', looksBlank({ mean: 6, variance: 400 }), false)
+  check('a flat grey card is not blank', looksBlank({ mean: 128, variance: 0 }), false)
+  check('an ordinary frame is not blank', looksBlank({ mean: 97, variance: 3000 }), false)
+  // The measured extremes from the clips this was built against: a clip that is
+  // black throughout, and the darkest one that still has a picture.
+  check('a black clip is rejected', looksBlank({ mean: 0, variance: 0 }), true)
+  check('a dark but real clip is kept', looksBlank({ mean: 42.8, variance: 900 }), false)
 }
 
 console.log(`\n${failures === 0 ? 'all checks passed' : `${failures} CHECK(S) FAILED`}\n`)
